@@ -1,22 +1,21 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const PaymentSuccess: React.FC = () => {
     const [status, setStatus] = useState<'creating' | 'success' | 'error'>('creating');
     const [orderId, setOrderId] = useState<string | null>(null);
     const location = useLocation();
+    const navigate = useNavigate();
 
-    const reference = new URLSearchParams(location.search).get('reference') || new URLSearchParams(location.search).get('trxref');
+    const reference = new URLSearchParams(window.location.search).get('reference') || new URLSearchParams(window.location.search).get('trxref');
 
     useEffect(() => {
         if (!reference) return;
 
-        // Get brief data from sessionStorage
         const briefRaw = sessionStorage.getItem('sonnetary_brief');
         const brief = briefRaw ? JSON.parse(briefRaw) : {};
 
-        // Verify payment and create order
         const createOrder = async () => {
             try {
                 // Verify the transaction is paid
@@ -28,27 +27,37 @@ const PaymentSuccess: React.FC = () => {
                     return;
                 }
 
-                // Create the order
+                // Create (or fetch existing) order — idempotency handled server-side
                 const orderRes = await fetch('/api/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         songTitle: 'Custom Song',
                         genre: brief.genre || verifyData.metadata?.genre || '',
-                        mood: brief.mood || verifyData.metadata?.mood || '',
-                        tempo: brief.tempo || parseInt(verifyData.metadata?.tempo) || 100,
-                        occasion: '',
-                        story: brief.story || verifyData.metadata?.story || '',
                         paystackReference: reference,
+                        customerEmail: brief.customerEmail || verifyData.metadata?.customerEmail || '',
+                        recipientType: brief.recipientType || verifyData.metadata?.recipientType || '',
+                        senderName: brief.senderName || verifyData.metadata?.senderName || '',
+                        voiceGender: brief.voiceGender || verifyData.metadata?.voiceGender || '',
+                        specialQualities: brief.specialQualities || verifyData.metadata?.specialQualities || '',
+                        favoriteMemories: brief.favoriteMemories || verifyData.metadata?.favoriteMemories || '',
+                        specialMessage: brief.specialMessage || verifyData.metadata?.specialMessage || '',
                     }),
                 });
 
                 const orderData = await orderRes.json();
-                setOrderId(orderData.id);
+                const id = orderData.id;
+                setOrderId(id);
                 setStatus('success');
 
-                // Clear the stored brief
+                // Persist the order ID so Track page works on this device
+                sessionStorage.setItem('sonnetary_track_id', id);
                 sessionStorage.removeItem('sonnetary_brief');
+
+                // Auto-redirect to /track with the ID in the URL (shareable / cross-device)
+                setTimeout(() => {
+                    navigate(`/track?id=${id}`, { replace: false });
+                }, 4000);
             } catch (err) {
                 console.error('Order creation error:', err);
                 setStatus('error');
@@ -56,7 +65,8 @@ const PaymentSuccess: React.FC = () => {
         };
 
         createOrder();
-    }, [location.search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reference]);
 
     if (!reference) {
         return (
@@ -75,8 +85,8 @@ const PaymentSuccess: React.FC = () => {
         return (
             <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <span className="material-symbols-outlined text-6xl text-primary animate-spin">progress_activity</span>
-                <h2 className="text-2xl font-bold text-white font-display">Creating Your Order...</h2>
-                <p className="text-slate-400 font-body">Please wait while we confirm your payment and set up your song.</p>
+                <h2 className="text-2xl font-bold text-white font-display">Confirming Your Payment...</h2>
+                <p className="text-slate-400 font-body">Please wait while we verify your payment and set up your song.</p>
             </div>
         );
     }
@@ -109,12 +119,13 @@ const PaymentSuccess: React.FC = () => {
                 <p className="text-slate-300 text-lg font-body max-w-md">
                     Your custom song is now in production. Our team of professional artists will begin composing your masterpiece.
                 </p>
+                <p className="text-slate-500 text-sm mt-2 font-body">Redirecting to your order page in a moment...</p>
             </div>
 
             <div className="bg-background-surface border border-background-border rounded-xl p-6 w-full max-w-md">
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-sm text-slate-400 font-display">Order ID</span>
-                    <span className="text-sm text-white font-mono">{orderId?.slice(0, 8)}...</span>
+                    <span className="text-sm text-white font-mono">{orderId?.slice(0, 8).toUpperCase()}...</span>
                 </div>
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-sm text-slate-400 font-display">Amount Paid</span>
@@ -127,7 +138,10 @@ const PaymentSuccess: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                <Link to="/track" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-red-600 transition-all">
+                <Link
+                    to={orderId ? `/track?id=${orderId}` : '/track'}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-red-600 transition-all"
+                >
                     <span className="material-symbols-outlined">visibility</span>
                     Track Your Order
                 </Link>

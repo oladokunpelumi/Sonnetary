@@ -1,7 +1,12 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env.local') });
 
 // ─── Env Validation ───────────────────────────────────────────────────────────
-const REQUIRED_ENV = ['PAYSTACK_SECRET_KEY'];
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+const REQUIRED_ENV = [
+    'PAYSTACK_SECRET_KEY',
+    ...(IS_PROD ? ['JWT_SECRET', 'ADMIN_PASSWORD', 'CLIENT_URL'] : []),
+];
 const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missing.length > 0) {
     console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
@@ -26,12 +31,14 @@ const adminRouter = require('./routes/admin.cjs');
 const authRouter = require('./routes/auth.cjs');
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 3001;
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3001;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
-const IS_PROD = process.env.NODE_ENV === 'production';
 
 // ─── Security Middleware ───────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+    // Allow inline scripts needed for the SPA in production
+    contentSecurityPolicy: IS_PROD ? undefined : false,
+}));
 
 // CORS: restrict to known client URL in production
 app.use(
@@ -41,10 +48,26 @@ app.use(
     })
 );
 
-// Rate limiting on payment endpoints
+// ─── Rate Limiters ────────────────────────────────────────────────────────────
 const paymentLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: 20,
+    message: { error: 'Too many requests. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10,
+    message: { error: 'Too many sign-in attempts. Please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const generalApiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
     message: { error: 'Too many requests. Please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -53,26 +76,45 @@ const paymentLimiter = rateLimit({
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 // Raw body needed for webhook signature verification (must come before express.json())
 app.use('/api/paystack/webhook', express.raw({ type: 'application/json' }));
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
 app.use('/musics', express.static(path.join(__dirname, '..', 'musics')));
 
+// Serve the built React SPA in production
+if (IS_PROD) {
+    const distPath = path.join(__dirname, '..', 'dist');
+    app.use(express.static(distPath, { index: false }));
+}
+
 // ─── API Routes ───────────────────────────────────────────────────────────────
+app.use('/api', generalApiLimiter);
 app.use('/api/songs', songsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api', paymentsRouter); // legacy Stripe routes
 app.use('/api/paystack', paymentLimiter, paystackRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authLimiter, authRouter);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
 });
 
+// ─── SPA Fallback (production only) ──────────────────────────────────────────
+// Must come after all API routes so non-API paths serve index.html
+if (IS_PROD) {
+    const distPath = path.join(__dirname, '..', 'dist');
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+}
+
 app.listen(PORT, () => {
     console.log(`🎵 Sonnetary server running on http://localhost:${PORT}`);
     console.log(`📁 Serving audio from: ${path.join(__dirname, '..', 'musics')}`);
     console.log(`🔐 CORS origin: ${IS_PROD ? CLIENT_URL : 'all (dev mode)'}`);
+    if (IS_PROD) {
+        console.log(`🌐 Serving SPA from: ${path.join(__dirname, '..', 'dist')}`);
+    }
 });

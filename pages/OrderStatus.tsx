@@ -1,20 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { OrderData } from '../types';
 
 const OrderStatus: React.FC = () => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeLefts, setTimeLefts] = useState<Record<string, { days: number; hours: number; minutes: number; seconds: number }>>({});
+  const location = useLocation();
 
   useEffect(() => {
-    const trackId = sessionStorage.getItem('sonnetary_track_id');
+    // Priority: URL param ?id= > URL param ?email= > sessionStorage
+    const params = new URLSearchParams(location.search);
+    const urlId = params.get('id');
+    const urlEmail = params.get('email');
+    const trackId = urlId || urlEmail || sessionStorage.getItem('sonnetary_track_id');
 
     if (!trackId) {
       setLoading(false);
       return;
     }
+
+    // Persist to sessionStorage so refreshing still works
+    sessionStorage.setItem('sonnetary_track_id', trackId);
 
     const fetchOrders = async () => {
       try {
@@ -41,7 +49,7 @@ const OrderStatus: React.FC = () => {
     };
 
     fetchOrders();
-  }, []);
+  }, [location.search]);
 
   // Live countdown timer
   useEffect(() => {

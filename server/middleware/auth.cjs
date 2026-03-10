@@ -37,16 +37,24 @@ function requireAdmin(req, res, next) {
 }
 
 /**
- * Helper: Generate JWT token for a user
+ * Helper: Generate JWT token for a user or admin.
+ * Accepts either:
+ *   - { id, email } for regular users (role derived from ADMIN_EMAIL check)
+ *   - { id, role: 'admin' } for direct admin token generation (email not required)
  */
 function generateToken(user) {
-    // Check if they match the configured admin email
-    const role = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user';
+    // If a role is explicitly provided (e.g. from admin login), trust it directly.
+    // Otherwise derive role by comparing email to the configured admin email.
+    const role = user.role || (
+        user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+            ? 'admin'
+            : 'user'
+    );
 
     return jwt.sign(
-        { userId: user.id, email: user.email, role },
+        { userId: user.id, email: user.email || null, role },
         JWT_SECRET,
-        { expiresIn: '7d' } // Extended session length for magic links
+        { expiresIn: '7d' }
     );
 }
 

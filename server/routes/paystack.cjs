@@ -2,8 +2,17 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const { z } = require('zod');
 const db = require('../db.cjs');
 const { sendConfirmationEmail } = require('../email.cjs');
+const { generateProductionBrief } = require('../services/gemini.cjs');
+
+// ── Validation schema ─────────────────────────────────────────────────────────
+const InitializeSchema = z.object({
+    email: z.string().email().optional().or(z.literal('')),
+    amount: z.number().int().positive().optional(),
+    metadata: z.record(z.unknown()).optional(),
+});
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_WEBHOOK_SECRET = process.env.PAYSTACK_WEBHOOK_SECRET || PAYSTACK_SECRET_KEY;
@@ -26,7 +35,7 @@ router.post('/initialize', async (req, res) => {
                 email: customerEmail,
                 amount: amount || 3000000, // 30,000 NGN in Kobo
                 currency: 'NGN',
-                callback_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/payment-success`,
+                callback_url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/#/payment-success`,
                 metadata: { ...metadata, customerEmail },
             }),
         });
@@ -112,20 +121,33 @@ router.post('/webhook', (req, res) => {
         ).toISOString();
 
         try {
+            // Generate AI production brief asynchronously — doesn't block order creation
+            const briefPromise = generateProductionBrief({
+                recipientType: metadata?.recipientType || '',
+                senderName: metadata?.senderName || '',
+                genre: metadata?.genre || '',
+                voiceGender: metadata?.voiceGender || '',
+                specialQualities: metadata?.specialQualities || '',
+                favoriteMemories: metadata?.favoriteMemories || '',
+                specialMessage: metadata?.specialMessage || '',
+            });
+
             db.prepare(`
-        INSERT INTO orders (
-            id, song_title, genre, mood, tempo, occasion, story, status, created_at, delivery_date, paystack_reference, amount,
-            recipient_type, sender_name, voice_gender, special_qualities, favorite_memories, special_message
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+                INSERT INTO orders (
+                    id, song_title, genre, mood, tempo, occasion, story, status,
+                    created_at, delivery_date, paystack_reference, amount,
+                    recipient_type, sender_name, voice_gender,
+                    special_qualities, favorite_memories, special_message, customer_email
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
                 id,
                 'Custom Song',
                 metadata?.genre || '',
-                '', // mood deprecated
-                100, // tempo deprecated
-                '',  // occasion deprecated
-                '',  // story deprecated
+                '',   // mood — field is deprecated in new order flow
+                100,  // tempo — field is deprecated in new order flow
+                '',   // occasion — field is deprecated
+                '',   // story — field is deprecated (replaced by specialQualities etc.)
                 createdAt,
                 deliveryDate,
                 reference,
@@ -135,10 +157,21 @@ router.post('/webhook', (req, res) => {
                 metadata?.voiceGender || '',
                 metadata?.specialQualities || '',
                 metadata?.favoriteMemories || '',
-                metadata?.specialMessage || ''
+                metadata?.specialMessage || '',
+                metadata?.customerEmail || customer?.email || null
             );
 
             console.log(`[Webhook] ✅ Created order ${id} for reference ${reference}`);
+
+            // Update the order with AI brief once generated
+            briefPromise.then(brief => {
+                try {
+                    db.prepare('UPDATE orders SET ai_brief = ? WHERE id = ?').run(brief, id);
+                    console.log(`[Webhook] ✅ AI brief stored for order ${id}`);
+                } catch (e) {
+                    console.error('[Webhook] Failed to store AI brief:', e.message);
+                }
+            });
 
             // Send confirmation email
             const customerEmail = metadata?.customerEmail || customer?.email;

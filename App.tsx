@@ -171,48 +171,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
   }, [activeSong, songs, playSong, volume]);
 
-  // Audio element setup
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = volume;
-    }
-
-    const audio = audioRef.current;
-
-    const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-      // 30-second preview limit for sample songs
-      if (audio.currentTime >= PREVIEW_LIMIT_SECONDS) {
-        audio.pause();
-        audio.currentTime = 0;
-        setIsPlaying(false);
-        setIsPreviewLocked(true);
-      }
-    };
-    const onDurationChange = () => setDuration(audio.duration || 0);
-    const onEnded = () => {
-      setIsPlaying(false);
-      // Auto-advance to next song
-      if (activeSong && songs.length > 0) {
-        const idx = songs.findIndex(s => s.id === activeSong.id);
-        if (idx < songs.length - 1) {
-          playSong(songs[idx + 1]);
-        }
-      }
-    };
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('durationchange', onDurationChange);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('durationchange', onDurationChange);
-      audio.removeEventListener('ended', onEnded);
-    };
-  }, [activeSong, songs, playSong, volume]);
-
   const contextValue: PlayerContextType = {
     songs,
     activeSong,

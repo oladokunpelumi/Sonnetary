@@ -142,4 +142,84 @@ async function sendMagicLinkEmail({ to, token }) {
   }
 }
 
-module.exports = { sendConfirmationEmail, sendMagicLinkEmail };
+/**
+ * Send an order completion email to the customer.
+ * @param {object} params
+ * @param {string} params.to - Customer email
+ * @param {string} params.orderId - Short order reference (8-char uppercase)
+ * @param {string} params.genre - Song genre
+ * @param {string} params.senderName - Name of the person who ordered
+ * @param {string} params.recipientType - Who the song is for (e.g. "Wife")
+ */
+async function sendCompletionEmail({ to, orderId, genre, senderName, recipientType }) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_placeholder')) {
+    console.log('[Email] Resend not configured — skipping completion email to:', to);
+    return;
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #f0f0f0; margin: 0; padding: 0; }
+    .container { max-width: 540px; margin: 40px auto; background: #141414; border-radius: 16px; overflow: hidden; border: 1px solid #242424; }
+    .header { background: linear-gradient(135deg, #16a34a, #15803d); padding: 40px 32px; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; color: white; letter-spacing: -0.5px; }
+    .header p { margin: 8px 0 0; color: rgba(255,255,255,0.8); font-size: 14px; }
+    .body { padding: 32px; }
+    .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #242424; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #6b7280; font-size: 13px; }
+    .value { color: #f9fafb; font-size: 13px; font-weight: 600; text-align: right; }
+    .cta { display: block; margin: 24px 0 0; padding: 14px; background: #e11d48; color: white; text-decoration: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 15px; }
+    .badge { display: inline-block; background: #16a34a22; color: #4ade80; border: 1px solid #16a34a44; border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 700; margin-bottom: 20px; }
+    .footer { padding: 24px 32px; background: #0f0f0f; text-align: center; color: #4b5563; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎵 Sonnetary</h1>
+      <p>Your custom song is ready!</p>
+    </div>
+    <div class="body">
+      <div style="text-align:center; margin-bottom: 24px;">
+        <span class="badge">✓ Song Completed</span>
+      </div>
+      <p style="color:#d1d5db; line-height:1.6;">
+        ${senderName ? `Hi ${senderName},` : 'Hello,'}<br><br>
+        Great news! Your custom${recipientType ? ` song for your ${recipientType}` : ' song'} has been completed and is ready for delivery. Our team has poured their heart into crafting something truly special for you.
+      </p>
+      <div style="background:#1c1c1c; border-radius:10px; padding:16px; margin: 20px 0;">
+        <div class="row"><span class="label">Order ID</span><span class="value">#${orderId}</span></div>
+        ${genre ? `<div class="row"><span class="label">Genre</span><span class="value">${genre}</span></div>` : ''}
+        ${recipientType ? `<div class="row"><span class="label">Song For</span><span class="value">${recipientType}</span></div>` : ''}
+        <div class="row"><span class="label">Status</span><span class="value" style="color:#4ade80;">Completed ✓</span></div>
+      </div>
+      <p style="color:#9ca3af; font-size:13px; line-height:1.6;">
+        Our team will be in touch with the final track. If you have any questions, please don't hesitate to reach out.
+      </p>
+      <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/#/track" class="cta">View Your Order →</a>
+    </div>
+    <div class="footer">Sonnetary • Your story, our music. © ${new Date().getFullYear()}</div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: `🎵 Your Sonnetary song #${orderId} is ready!`,
+      html,
+    });
+    console.log('[Email] Sent completion email to:', to, '| ID:', result.data?.id);
+    return result;
+  } catch (err) {
+    console.error('[Email] Failed to send completion email:', err.message);
+  }
+}
+
+module.exports = { sendConfirmationEmail, sendMagicLinkEmail, sendCompletionEmail };

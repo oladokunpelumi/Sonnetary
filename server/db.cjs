@@ -1,7 +1,20 @@
+// ── PostgreSQL support ────────────────────────────────────────────────────────
+// If DATABASE_URL is set, initialize PostgreSQL schema and re-export the pg adapter.
+// Routes that need async pg queries import from './db-postgres.cjs' directly.
+if (process.env.DATABASE_URL) {
+    const pg = require('./db-postgres.cjs');
+    pg.initSchema().catch(err => {
+        console.error('[PostgreSQL] Schema init failed:', err.message);
+        process.exit(1);
+    });
+    module.exports = pg; // Export pg adapter — all consumers must use async/await
+    return; // Skip SQLite setup below
+}
+
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'sonnetary.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'sonnetary.db');
 const db = new Database(DB_PATH);
 
 // Enable WAL mode for better concurrent access
@@ -47,6 +60,8 @@ try { db.exec("ALTER TABLE orders ADD COLUMN voice_gender TEXT"); } catch (err) 
 try { db.exec("ALTER TABLE orders ADD COLUMN special_qualities TEXT"); } catch (err) { }
 try { db.exec("ALTER TABLE orders ADD COLUMN favorite_memories TEXT"); } catch (err) { }
 try { db.exec("ALTER TABLE orders ADD COLUMN special_message TEXT"); } catch (err) { }
+try { db.exec("ALTER TABLE orders ADD COLUMN customer_email TEXT"); } catch (err) { }
+try { db.exec("ALTER TABLE orders ADD COLUMN ai_brief TEXT"); } catch (err) { }
 
 
 
@@ -62,18 +77,18 @@ if (songCount.count === 0) {
   const seedSongs = [
     {
       title: 'Like Roses (You Are Your Name)',
-      genre: 'Soul / R&B',
+      genre: 'Afro-R&B',
       duration: '4:03',
       description: '"We met at a coffee shop on a rainy Tuesday. I spilled my latte, he laughed, and now every moment feels like roses blooming."',
       cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCn8xOssl2ppe5twvI7LYDeLGPnmv-mo9yVKKzEBlA6LDDxKmJmEZ4iOXN1t9pT2eiVrYMzuuUqhoHRRyrHnVkB4fuBScfeRLGc__QeeJKM40nGNE0vBX1OaYrCxt-0Y_BalNBilpXI8jzgTrw3FVN9LUvUsAZg7IeBVXn5JKh2S7RS4dJYv6V0UJtqqhyY8PIR35JSwhd1Gdzm3vcpCaNrncnlxrt7QVGUc7N7axoppfVPDUPVHokSBBRd5cv3Nmb--XvVB7Tbkg',
       artist: 'First Love',
       tags: JSON.stringify(['First Date', 'Love']),
       audio_url: '/musics/Like Roses ( You Are Your Name).mp3',
-      story: 'A first date love story turned into soulful R&B.'
+      story: 'A first date love story turned into a romantic Afro-R&B track.'
     },
     {
       title: 'Mimi (Give Me Wealth)',
-      genre: 'Afrobeats',
+      genre: 'Afro-Beats',
       duration: '1:47',
       description: '"For her milestone birthday, we wanted to capture her radiant energy, her love for life, and the joy she brings to everyone around her."',
       cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAvKxuOtg_3IVmm0l8rcnPdVJtKIB_iOtBYdQdMm6nAYydMOsmIgiQlkbKvqIGiUjpvMotWmPV1rjbepTXfuVlEnepVvxv_dNkUubkUik5OZS2QKArjhKO0nav02SQm90Tk8rTYfZ-PFsaBa8-7CNDLdMDNlyFXKvbjg5Rv00_OrMmS6nCMKnlNZFnXCrYO1QpQUSrVfMW_AO72eUtnnJV0ihDT08TkpolfbndIJxKz-KLWNGNiv7Xqb-31b5ely4qUhLJg0GozHw',
@@ -84,7 +99,7 @@ if (songCount.count === 0) {
     },
     {
       title: 'Baby Steps',
-      genre: 'Lullaby',
+      genre: 'Gospel',
       duration: '2:58',
       description: '"Welcoming our first child was magic. We wanted a song that we could hum to her every night as she drifts off to sleep."',
       cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbJHdoLF0pZDcWvJt_PYJ2omO4zgo2pXdiE-vRWknOLG7l8xuEupdb0lbuiu5D963dwT0dvFR8hcoScud5gLUvctPAR5csY0_2My3OQzi4v1zJ06tXK14IWUke0Y0QxExxpa3qEUHKoPTy_tlhTuj31_h732NM8VHCvSQjAo1C4bPCLdaFipVOwUbp-Xsxznwfhx4dfqixZfuSda89J64oBpG7Di6vr9hmY6O_a0o9P5sNi6aSLRRI3zkhulZ0qxCEh9vlh_szUg',
@@ -95,7 +110,7 @@ if (songCount.count === 0) {
     },
     {
       title: 'Valentine',
-      genre: 'Pop / Electronic',
+      genre: 'Afro-R&B',
       duration: '2:30',
       description: '"A song to celebrate our love and all the wonderful moments we share."',
       cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbJHdoLF0pZDcWvJt_PYJ2omO4zgo2pXdiE-vRWknOLG7l8xuEupdb0lbuiu5D963dwT0dvFR8hcoScud5gLUvctPAR5csY0_2My3OQzi4v1zJ06tXK14IWUke0Y0QxExxpa3qEUHKoPTy_tlhTuj31_h732NM8VHCvSQjAo1C4bPCLdaFipVOwUbp-Xsxznwfhx4dfqixZfuSda89J64oBpG7Di6vr9hmY6O_a0o9P5sNi6aSLRRI3zkhulZ0qxCEh9vlh_szUg',

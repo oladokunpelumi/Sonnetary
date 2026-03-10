@@ -2,10 +2,12 @@
 import { Genre, Mood } from './types';
 
 export const GENRES: { name: Genre; desc: string; icon: string }[] = [
-  { name: 'Acoustic Pop' as any, desc: 'Intimate & Raw', icon: 'piano' },
-  { name: 'Cinematic', desc: 'Grand & Emotional', icon: 'movie' },
-  { name: 'Neo-Soul', desc: 'Smooth & Groovy', icon: 'queue_music' },
-  { name: 'Afrobeats' as any, desc: 'Vibrant & Rhythmic', icon: 'music_note' },
+  { name: 'Afro-Beats', desc: 'Vibrant & Rhythmic', icon: 'music_note' },
+  { name: 'Afro-Jazz', desc: 'Smooth & Soulful', icon: 'nightlife' },
+  { name: 'Afro-R&B', desc: 'Romantic & Groovy', icon: 'favorite' },
+  { name: 'Afro-Reggae', desc: 'Island Vibes', icon: 'queue_music' },
+  { name: 'Afro-House', desc: 'Energetic & Driving', icon: 'speaker' },
+  { name: 'Gospel', desc: 'Uplifting & Spiritual', icon: 'volunteer_activism' },
 ];
 
 export const MOODS: { name: Mood; icon: string; img: string }[] = [

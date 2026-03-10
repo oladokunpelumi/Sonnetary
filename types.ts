@@ -1,5 +1,11 @@
 
-export type Genre = 'Soul / R&B' | 'Folk / Acoustic' | 'Lullaby' | 'Pop / Upbeat' | 'Cinematic' | 'Neo-Soul' | 'Afrobeats';
+export type Genre =
+  | 'Afro-Beats'
+  | 'Afro-Jazz'
+  | 'Afro-R&B'
+  | 'Afro-Reggae'
+  | 'Afro-House'
+  | 'Gospel';
 export type Mood = 'Nostalgic' | 'Upbeat' | 'Romantic' | 'Melancholic';
 
 export interface Song {

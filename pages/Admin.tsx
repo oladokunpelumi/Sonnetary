@@ -19,6 +19,17 @@ interface Order {
     special_qualities: string;
     favorite_memories: string;
     special_message: string;
+    customer_email: string;
+    ai_brief: string;
+}
+
+interface Pagination {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
 }
 
 interface Stats {
@@ -40,6 +51,10 @@ const Admin: React.FC = () => {
     const [loginError, setLoginError] = useState('');
 
     const [orders, setOrders] = useState<Order[]>([]);
+    const [pagination, setPagination] = useState<Pagination | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [statusFilter, setStatusFilter] = useState('');
+    const [search, setSearch] = useState('');
     const [stats, setStats] = useState<Stats | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -76,11 +91,15 @@ const Admin: React.FC = () => {
         setAdminToken(null);
     }, []);
 
-    const fetchData = useCallback(async (authToken: string) => {
+    const fetchData = useCallback(async (authToken: string, page = 1) => {
         setIsLoading(true);
         try {
+            const params = new URLSearchParams({ page: String(page), limit: '25' });
+            if (statusFilter) params.set('status', statusFilter);
+            if (search) params.set('search', search);
+
             const [ordersRes, statsRes] = await Promise.all([
-                fetch('/api/admin/orders', { headers: { Authorization: `Bearer ${authToken}` } }),
+                fetch(`/api/admin/orders?${params}`, { headers: { Authorization: `Bearer ${authToken}` } }),
                 fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${authToken}` } }),
             ]);
 
@@ -89,21 +108,22 @@ const Admin: React.FC = () => {
                 return;
             }
 
-            const [ordersData, statsData] = await Promise.all([ordersRes.json(), statsRes.json()]);
-            setOrders(ordersData);
+            const [ordersPayload, statsData] = await Promise.all([ordersRes.json(), statsRes.json()]);
+            setOrders(ordersPayload.data ?? ordersPayload);
+            setPagination(ordersPayload.pagination ?? null);
             setStats(statsData);
         } catch (err) {
             console.error('Failed to fetch admin data:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [logout]);
+    }, [logout, statusFilter, search]);
 
     useEffect(() => {
         if (adminToken) {
-            fetchData(adminToken);
+            fetchData(adminToken, currentPage);
         }
-    }, [adminToken, fetchData]);
+    }, [adminToken, fetchData, currentPage]);
 
     const handleStatusUpdate = async (orderId: string, newStatus: string) => {
         if (!adminToken) return;
@@ -249,9 +269,28 @@ const Admin: React.FC = () => {
 
                 {/* Orders Table */}
                 <div className="bg-background-surface border border-background-border rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-background-border flex items-center justify-between">
+                    <div className="px-6 py-4 border-b border-background-border flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
                         <h2 className="font-bold text-white font-display">All Orders</h2>
-                        <span className="text-xs text-slate-500">{orders.length} orders total</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <input
+                                type="text"
+                                placeholder="Search name / email / ID..."
+                                value={search}
+                                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-white text-xs placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-primary w-48"
+                            />
+                            <select
+                                value={statusFilter}
+                                onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                <option value="">All statuses</option>
+                                <option value="in_production">In Production</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <span className="text-xs text-slate-500">{pagination ? `${pagination.total} orders` : `${orders.length} orders`}</span>
+                        </div>
                     </div>
 
                     {isLoading ? (
@@ -365,10 +404,53 @@ const Admin: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* AI Production Brief */}
+                                            {order.ai_brief ? (
+                                                <div className="pt-4 border-t border-background-border">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="material-symbols-outlined text-base text-violet-400">auto_awesome</span>
+                                                        <span className="text-violet-400 text-xs uppercase tracking-wider font-bold">AI Production Brief</span>
+                                                    </div>
+                                                    <p className="text-white/90 leading-relaxed bg-violet-500/5 border border-violet-500/20 p-3 rounded-lg whitespace-pre-wrap text-sm">{order.ai_brief}</p>
+                                                </div>
+                                            ) : (
+                                                <div className="pt-4 border-t border-background-border flex items-center gap-2 text-slate-600 text-xs">
+                                                    <span className="material-symbols-outlined text-sm">hourglass_empty</span>
+                                                    AI brief pending generation
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {pagination && pagination.totalPages > 1 && (
+                        <div className="px-6 py-4 border-t border-background-border flex items-center justify-between gap-4">
+                            <span className="text-xs text-slate-500 font-display">
+                                Page {pagination.page} of {pagination.totalPages}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); }}
+                                    disabled={!pagination.hasPrev}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-background border border-background-border text-sm text-white disabled:opacity-40 hover:border-primary/50 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                                    Prev
+                                </button>
+                                <button
+                                    onClick={() => { setCurrentPage(p => p + 1); }}
+                                    disabled={!pagination.hasNext}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-background border border-background-border text-sm text-white disabled:opacity-40 hover:border-primary/50 transition-colors"
+                                >
+                                    Next
+                                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

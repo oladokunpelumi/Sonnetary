@@ -69,7 +69,7 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
             <div
-                className="w-full max-w-md bg-background-surface border border-background-border rounded-2xl p-6 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+                className="w-full max-w-md bg-background-surface border border-background-border rounded-2xl p-6 relative shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <button

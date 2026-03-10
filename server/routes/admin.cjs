@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db.cjs');
 const { generateToken, requireAdmin } = require('../middleware/auth.cjs');
+const { sendCompletionEmail } = require('../email.cjs');
 
 // POST /api/admin/login — create an admin JWT for the dashboard
 router.post('/login', (req, res) => {
@@ -19,11 +20,43 @@ router.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
 });
 
-// GET /api/admin/orders — all orders, most recent first, with full detail
+// GET /api/admin/orders — paginated orders, most recent first
+// Query params: ?page=1&limit=25&status=in_production&search=
 router.get('/orders', requireAdmin, (req, res) => {
     try {
-        const orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
-        res.json(orders);
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+        const offset = (page - 1) * limit;
+        const statusFilter = req.query.status;
+        const search = req.query.search?.toString().trim();
+
+        let where = '';
+        const params = [];
+
+        if (statusFilter && ['in_production', 'completed', 'cancelled'].includes(statusFilter)) {
+            where += ' AND status = ?';
+            params.push(statusFilter);
+        }
+        if (search) {
+            where += ' AND (sender_name LIKE ? OR customer_email LIKE ? OR id LIKE ?)';
+            const like = `%${search}%`;
+            params.push(like, like, like);
+        }
+
+        const total = db.prepare(`SELECT COUNT(*) as count FROM orders WHERE 1=1${where}`).get(...params).count;
+        const orders = db.prepare(`SELECT * FROM orders WHERE 1=1${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
+
+        res.json({
+            data: orders,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page * limit < total,
+                hasPrev: page > 1,
+            },
+        });
     } catch (err) {
         console.error('Admin: Error fetching orders:', err);
         res.status(500).json({ error: 'Failed to fetch orders' });
@@ -62,6 +95,18 @@ router.patch('/orders/:id/status', requireAdmin, (req, res) => {
         }
 
         const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+
+        // Send completion email to customer when status is marked completed
+        if (status === 'completed' && order?.customer_email) {
+            sendCompletionEmail({
+                to: order.customer_email,
+                orderId: order.id.slice(0, 8).toUpperCase(),
+                genre: order.genre,
+                senderName: order.sender_name,
+                recipientType: order.recipient_type,
+            });
+        }
+
         res.json(order);
     } catch (err) {
         console.error('Admin: Error updating order status:', err);
