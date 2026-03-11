@@ -5,59 +5,103 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 const PaymentSuccess: React.FC = () => {
     const [status, setStatus] = useState<'creating' | 'success' | 'error'>('creating');
     const [orderId, setOrderId] = useState<string | null>(null);
+    const [amountPaid, setAmountPaid] = useState<string>('');
     const location = useLocation();
     const navigate = useNavigate();
 
-    const reference = new URLSearchParams(window.location.search).get('reference') || new URLSearchParams(window.location.search).get('trxref');
+    // Stripe: session_id is inside the hash (we control the success URL format)
+    // so location.search from React Router works correctly.
+    const hashParams = new URLSearchParams(location.search);
+    const stripeSessionId = hashParams.get('session_id');
+
+    // Paystack: appends params BEFORE the hash, so use window.location.search
+    const urlParams = new URLSearchParams(window.location.search);
+    const paystackReference = urlParams.get('reference') || urlParams.get('trxref');
+
+    const hasReference = !!(stripeSessionId || paystackReference);
 
     useEffect(() => {
-        if (!reference) return;
+        if (!hasReference) return;
 
         const briefRaw = sessionStorage.getItem('sonnetary_brief');
         const brief = briefRaw ? JSON.parse(briefRaw) : {};
 
+        const finalize = (id: string) => {
+            setOrderId(id);
+            setStatus('success');
+            sessionStorage.setItem('sonnetary_track_id', id);
+            sessionStorage.removeItem('sonnetary_brief');
+            setTimeout(() => {
+                navigate(`/track?id=${id}`, { replace: false });
+            }, 4000);
+        };
+
         const createOrder = async () => {
             try {
-                // Verify the transaction is paid
-                const verifyRes = await fetch(`/api/paystack/verify/${reference}`);
-                const verifyData = await verifyRes.json();
+                if (stripeSessionId) {
+                    // ── Stripe flow ─────────────────────────────────────────
+                    const verifyRes = await fetch(`/api/verify-session/${stripeSessionId}`);
+                    const verifyData = await verifyRes.json();
 
-                if (!verifyData.paid) {
-                    setStatus('error');
-                    return;
+                    if (!verifyData.paid) {
+                        setStatus('error');
+                        return;
+                    }
+
+                    setAmountPaid('$25 USD');
+
+                    const meta = verifyData.metadata || {};
+                    const orderRes = await fetch('/api/orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            songTitle: 'Custom Song',
+                            genre: brief.genre || meta.genre || '',
+                            stripeSessionId,
+                            customerEmail: brief.customerEmail || verifyData.customerEmail || meta.customerEmail || '',
+                            recipientType: brief.recipientType || meta.recipientType || '',
+                            senderName: brief.senderName || meta.senderName || '',
+                            voiceGender: brief.voiceGender || meta.voiceGender || '',
+                            specialQualities: brief.specialQualities || meta.specialQualities || '',
+                            favoriteMemories: brief.favoriteMemories || meta.favoriteMemories || '',
+                            specialMessage: brief.specialMessage || meta.specialMessage || '',
+                        }),
+                    });
+
+                    const orderData = await orderRes.json();
+                    finalize(orderData.id);
+                } else {
+                    // ── Paystack flow ───────────────────────────────────────
+                    const verifyRes = await fetch(`/api/paystack/verify/${paystackReference}`);
+                    const verifyData = await verifyRes.json();
+
+                    if (!verifyData.paid) {
+                        setStatus('error');
+                        return;
+                    }
+
+                    setAmountPaid('₦30,000');
+
+                    const orderRes = await fetch('/api/orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            songTitle: 'Custom Song',
+                            genre: brief.genre || verifyData.metadata?.genre || '',
+                            paystackReference,
+                            customerEmail: brief.customerEmail || verifyData.metadata?.customerEmail || '',
+                            recipientType: brief.recipientType || verifyData.metadata?.recipientType || '',
+                            senderName: brief.senderName || verifyData.metadata?.senderName || '',
+                            voiceGender: brief.voiceGender || verifyData.metadata?.voiceGender || '',
+                            specialQualities: brief.specialQualities || verifyData.metadata?.specialQualities || '',
+                            favoriteMemories: brief.favoriteMemories || verifyData.metadata?.favoriteMemories || '',
+                            specialMessage: brief.specialMessage || verifyData.metadata?.specialMessage || '',
+                        }),
+                    });
+
+                    const orderData = await orderRes.json();
+                    finalize(orderData.id);
                 }
-
-                // Create (or fetch existing) order — idempotency handled server-side
-                const orderRes = await fetch('/api/orders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        songTitle: 'Custom Song',
-                        genre: brief.genre || verifyData.metadata?.genre || '',
-                        paystackReference: reference,
-                        customerEmail: brief.customerEmail || verifyData.metadata?.customerEmail || '',
-                        recipientType: brief.recipientType || verifyData.metadata?.recipientType || '',
-                        senderName: brief.senderName || verifyData.metadata?.senderName || '',
-                        voiceGender: brief.voiceGender || verifyData.metadata?.voiceGender || '',
-                        specialQualities: brief.specialQualities || verifyData.metadata?.specialQualities || '',
-                        favoriteMemories: brief.favoriteMemories || verifyData.metadata?.favoriteMemories || '',
-                        specialMessage: brief.specialMessage || verifyData.metadata?.specialMessage || '',
-                    }),
-                });
-
-                const orderData = await orderRes.json();
-                const id = orderData.id;
-                setOrderId(id);
-                setStatus('success');
-
-                // Persist the order ID so Track page works on this device
-                sessionStorage.setItem('sonnetary_track_id', id);
-                sessionStorage.removeItem('sonnetary_brief');
-
-                // Auto-redirect to /track with the ID in the URL (shareable / cross-device)
-                setTimeout(() => {
-                    navigate(`/track?id=${id}`, { replace: false });
-                }, 4000);
             } catch (err) {
                 console.error('Order creation error:', err);
                 setStatus('error');
@@ -66,9 +110,9 @@ const PaymentSuccess: React.FC = () => {
 
         createOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [reference]);
+    }, [hasReference]);
 
-    if (!reference) {
+    if (!hasReference) {
         return (
             <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <span className="material-symbols-outlined text-6xl text-red-400">error</span>
@@ -129,7 +173,11 @@ const PaymentSuccess: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-sm text-slate-400 font-display">Amount Paid</span>
-                    <span className="text-sm text-white font-bold">₦30,000</span>
+                    <span className="text-sm text-white font-bold">{amountPaid}</span>
+                </div>
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-slate-400 font-display">Payment via</span>
+                    <span className="text-sm text-white font-medium">{stripeSessionId ? 'Stripe' : 'Paystack'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-400 font-display">Estimated Delivery</span>

@@ -29,6 +29,7 @@ const paymentsRouter = require('./routes/payments.cjs');
 const paystackRouter = require('./routes/paystack.cjs');
 const adminRouter = require('./routes/admin.cjs');
 const authRouter = require('./routes/auth.cjs');
+const geoRouter = require('./routes/geo.cjs');
 
 const app = express();
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3001;
@@ -95,6 +96,7 @@ app.use('/api', paymentsRouter); // legacy Stripe routes
 app.use('/api/paystack', paymentLimiter, paystackRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/geo', geoRouter);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

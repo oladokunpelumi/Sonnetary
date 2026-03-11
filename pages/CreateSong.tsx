@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const RECIPIENTS = ['Husband', 'Wife', 'Boyfriend', 'Girlfriend', 'Children', 'Father', 'Mother', 'Sibling', 'Friend', 'Myself', 'Other'];
 
@@ -36,6 +36,19 @@ const CreateSong: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentProvider, setPaymentProvider] = useState<'paystack' | 'stripe' | null>(null);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  // Detect country when reaching step 5 to choose payment provider
+  useEffect(() => {
+    if (step !== 5 || paymentProvider !== null) return;
+    setIsDetectingLocation(true);
+    fetch('/api/geo/country')
+      .then(r => r.json())
+      .then(data => setPaymentProvider(data.isNigeria ? 'paystack' : 'stripe'))
+      .catch(() => setPaymentProvider('paystack')) // default to Paystack on error
+      .finally(() => setIsDetectingLocation(false));
+  }, [step, paymentProvider]);
 
   const nextStep = () => {
     setError(null);
@@ -86,22 +99,36 @@ const CreateSong: React.FC = () => {
     sessionStorage.setItem('sonnetary_brief', JSON.stringify(briefData));
 
     try {
-      const response = await fetch('/api/paystack/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: customerEmail,
-          amount: 3000000, // 30,000 NGN in Kobo
-          metadata: briefData
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.authorization_url) {
-        window.location.href = data.authorization_url;
+      if (paymentProvider === 'stripe') {
+        // International customers — Stripe ($25 USD)
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(briefData),
+        });
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          setError('Could not initialize checkout session. Please try again.');
+        }
       } else {
-        setError('Could not initialize checkout session. Please try again.');
+        // Nigerian customers — Paystack (₦30,000)
+        const response = await fetch('/api/paystack/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: customerEmail,
+            amount: 3000000, // 30,000 NGN in Kobo
+            metadata: briefData,
+          }),
+        });
+        const data = await response.json();
+        if (data.authorization_url) {
+          window.location.href = data.authorization_url;
+        } else {
+          setError('Could not initialize checkout session. Please try again.');
+        }
       }
     } catch (err) {
       console.error('Checkout error:', err);
@@ -311,8 +338,21 @@ const CreateSong: React.FC = () => {
 
               <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-xl font-bold text-white font-display mb-1">Total Due: ₦30,000</h4>
-                  <p className="text-sm text-slate-400 font-body">Delivery in 3 Days • Secure Payment via Paystack</p>
+                  {isDetectingLocation ? (
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg text-primary animate-spin">progress_activity</span>
+                      <span className="text-slate-400 font-body text-sm">Detecting your location...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <h4 className="text-xl font-bold text-white font-display mb-1">
+                        Total Due: {paymentProvider === 'stripe' ? '$25 USD' : '₦30,000'}
+                      </h4>
+                      <p className="text-sm text-slate-400 font-body">
+                        Delivery in 3 Days • Secure Payment via {paymentProvider === 'stripe' ? 'Stripe' : 'Paystack'}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="flex gap-2 text-3xl opacity-50">
                   <i className="pf pf-mastercard" />
@@ -352,7 +392,7 @@ const CreateSong: React.FC = () => {
           ) : (
             <button
               onClick={handleCompleteBrief}
-              disabled={isSubmitting || !customerEmail}
+              disabled={isSubmitting || !customerEmail || isDetectingLocation || !paymentProvider}
               className="flex items-center gap-3 px-10 py-4 rounded-xl bg-primary text-white font-bold shadow-xl shadow-primary/30 hover:bg-red-600 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-lg font-display tracking-wider uppercase"
             >
               {isSubmitting ? (
@@ -363,7 +403,7 @@ const CreateSong: React.FC = () => {
               ) : (
                 <>
                   <span className="material-symbols-outlined text-xl">lock</span>
-                  Pay ₦30,000
+                  Pay {paymentProvider === 'stripe' ? '$25' : '₦30,000'}
                 </>
               )}
             </button>
