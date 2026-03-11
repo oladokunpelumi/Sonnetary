@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+const uuidv4 = () => crypto.randomUUID();
 const { z } = require('zod');
 const db = require('../db.cjs');
 const { sendConfirmationEmail } = require('../email.cjs');
