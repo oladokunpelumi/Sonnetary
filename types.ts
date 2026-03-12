@@ -52,5 +52,11 @@ export interface OrderData {
     seconds: number;
   };
   amount: number;
+  recipientType?: string | null;
+  senderName?: string | null;
+  voiceGender?: string | null;
+  specialQualities?: string | null;
+  favoriteMemories?: string | null;
+  specialMessage?: string | null;
 }
 

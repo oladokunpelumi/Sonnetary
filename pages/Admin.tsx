@@ -39,9 +39,9 @@ interface Stats {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    in_production: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    completed: 'bg-green-500/10 text-green-400 border-green-500/30',
-    cancelled: 'bg-red-500/10 text-red-400 border-red-500/30',
+    in_production: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+    completed: 'bg-green-500/10 text-green-600 border-green-500/30',
+    cancelled: 'bg-red-500/10 text-red-500 border-red-500/30',
 };
 
 const Admin: React.FC = () => {
@@ -144,43 +144,43 @@ const Admin: React.FC = () => {
 
     if (!adminToken) {
         return (
-            <div className="min-h-screen pt-32 pb-20 px-8 flex flex-col items-center justify-center">
-                <div className="max-w-md w-full glass-card p-10 rounded-2xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+            <div className="min-h-screen pt-32 pb-20 px-8 flex flex-col items-center justify-center bg-background">
+                <div className="max-w-md w-full bg-background-surface border border-background-border p-10 rounded-2xl relative overflow-hidden shadow-sm">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
 
                     <div className="relative text-center mb-8">
                         <span className="material-symbols-outlined text-4xl text-primary/80 mb-4 block">admin_panel_settings</span>
-                        <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 font-display">
+                        <h2 className="text-2xl font-bold text-[#1C1008] font-display">
                             Admin Login
                         </h2>
-                        <p className="text-slate-400 text-sm mt-3 font-body">Sign in to manage orders</p>
+                        <p className="text-[#A08B74] text-sm mt-3 font-body">Sign in to manage orders</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-5 relative">
                         {loginError && (
-                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm text-center">
                                 {loginError}
                             </div>
                         )}
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-1 mb-2 block font-display">Username</label>
+                                <label className="text-xs font-medium text-[#A08B74] uppercase tracking-widest pl-1 mb-2 block font-display">Username</label>
                                 <input
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full bg-background border border-background-border rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-body text-sm"
+                                    className="w-full bg-background border border-background-border rounded-xl px-4 py-3.5 text-[#1C1008] placeholder-[#A08B74] focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-body text-sm"
                                     placeholder="Enter username"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-medium text-slate-400 uppercase tracking-widest pl-1 mb-2 block font-display">Password</label>
+                                <label className="text-xs font-medium text-[#A08B74] uppercase tracking-widest pl-1 mb-2 block font-display">Password</label>
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-background border border-background-border rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-body text-sm"
+                                    className="w-full bg-background border border-background-border rounded-xl px-4 py-3.5 text-[#1C1008] placeholder-[#A08B74] focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-body text-sm"
                                     placeholder="••••••••"
                                     required
                                 />
@@ -189,7 +189,7 @@ const Admin: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full relative px-6 py-4 rounded-xl bg-gradient-to-r from-primary to-rose-400 text-white font-bold transition-all hover:shadow-[0_0_20px_rgba(255,107,107,0.3)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed group/btn overflow-hidden font-display tracker-wider mt-6"
+                            className="w-full relative px-6 py-4 rounded-xl bg-gradient-to-r from-primary to-amber-500 text-white font-bold transition-all hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed group/btn overflow-hidden font-display tracker-wider mt-6"
                         >
                             <span className="relative z-10 flex items-center justify-center gap-2 text-sm uppercase">
                                 {isLoading ? (
@@ -206,7 +206,7 @@ const Admin: React.FC = () => {
                             </span>
                         </button>
                         <div className="pt-6 text-center">
-                            <Link to="/" className="text-xs text-slate-500 hover:text-white transition-colors">
+                            <Link to="/" className="text-xs text-[#A08B74] hover:text-[#1C1008] transition-colors">
                                 ← Back to Home
                             </Link>
                         </div>
@@ -222,24 +222,24 @@ const Admin: React.FC = () => {
             <header className="bg-background-surface border-b border-background-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
-                    <span className="font-bold text-white font-display">Sonnetary Admin</span>
+                    <span className="font-bold text-[#1C1008] font-display">Sonnetary Admin</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => adminToken && fetchData(adminToken)}
-                        className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors"
+                        className="flex items-center gap-1 text-sm text-[#78614A] hover:text-[#1C1008] transition-colors"
                     >
                         <span className="material-symbols-outlined text-base">refresh</span>
                         Refresh
                     </button>
                     <button
                         onClick={logout}
-                        className="flex items-center gap-1 text-sm text-red-400 hover:text-red-300 transition-colors"
+                        className="flex items-center gap-1 text-sm text-red-500 hover:text-red-600 transition-colors"
                     >
                         <span className="material-symbols-outlined text-base">logout</span>
                         Log Out
                     </button>
-                    <Link to="/" className="text-sm text-slate-400 hover:text-white transition-colors ml-4 border-l border-background-border pl-4">
+                    <Link to="/" className="text-sm text-[#78614A] hover:text-[#1C1008] transition-colors ml-4 border-l border-background-border pl-4">
                         ← Site
                     </Link>
                 </div>
@@ -250,8 +250,8 @@ const Admin: React.FC = () => {
                 {stats && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {[
-                            { label: 'Total Orders', value: stats.totalOrders, icon: 'receipt_long', color: 'text-blue-400' },
-                            { label: 'Total Revenue', value: `₦${(stats.totalRevenue / 100).toLocaleString('en-NG')}`, icon: 'payments', color: 'text-green-400' },
+                            { label: 'Total Orders', value: stats.totalOrders, icon: 'receipt_long', color: 'text-blue-500' },
+                            { label: 'Total Revenue', value: `₦${(stats.totalRevenue / 100).toLocaleString('en-NG')}`, icon: 'payments', color: 'text-green-600' },
                             { label: 'Songs in Library', value: stats.songCount, icon: 'library_music', color: 'text-primary' },
                         ].map((stat) => (
                             <div key={stat.label} className="bg-background-surface border border-background-border rounded-xl p-6 flex items-center gap-4">
@@ -259,8 +259,8 @@ const Admin: React.FC = () => {
                                     <span className={`material-symbols-outlined text-2xl ${stat.color}`}>{stat.icon}</span>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider font-display">{stat.label}</p>
-                                    <p className="text-2xl font-bold text-white font-display">{stat.value}</p>
+                                    <p className="text-xs text-[#A08B74] font-medium uppercase tracking-wider font-display">{stat.label}</p>
+                                    <p className="text-2xl font-bold text-[#1C1008] font-display">{stat.value}</p>
                                 </div>
                             </div>
                         ))}
@@ -270,26 +270,26 @@ const Admin: React.FC = () => {
                 {/* Orders Table */}
                 <div className="bg-background-surface border border-background-border rounded-xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-background-border flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
-                        <h2 className="font-bold text-white font-display">All Orders</h2>
+                        <h2 className="font-bold text-[#1C1008] font-display">All Orders</h2>
                         <div className="flex items-center gap-2 flex-wrap">
                             <input
                                 type="text"
                                 placeholder="Search name / email / ID..."
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-white text-xs placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-primary w-48"
+                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-[#1C1008] text-xs placeholder-[#A08B74] focus:outline-none focus:ring-1 focus:ring-primary w-48"
                             />
                             <select
                                 value={statusFilter}
                                 onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-[#1C1008] text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                             >
                                 <option value="">All statuses</option>
                                 <option value="in_production">In Production</option>
                                 <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
                             </select>
-                            <span className="text-xs text-slate-500">{pagination ? `${pagination.total} orders` : `${orders.length} orders`}</span>
+                            <span className="text-xs text-[#A08B74]">{pagination ? `${pagination.total} orders` : `${orders.length} orders`}</span>
                         </div>
                     </div>
 
@@ -298,7 +298,7 @@ const Admin: React.FC = () => {
                             <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
                         </div>
                     ) : orders.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-16 gap-3 text-slate-500">
+                        <div className="flex flex-col items-center justify-center p-16 gap-3 text-[#A08B74]">
                             <span className="material-symbols-outlined text-4xl">inbox</span>
                             <p>No orders yet</p>
                         </div>
@@ -313,12 +313,12 @@ const Admin: React.FC = () => {
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-white font-bold font-mono text-sm">#{order.id.slice(0, 8).toUpperCase()}</span>
+                                                    <span className="text-[#1C1008] font-bold font-mono text-sm">#{order.id.slice(0, 8).toUpperCase()}</span>
                                                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${STATUS_COLORS[order.status] || STATUS_COLORS.in_production}`}>
                                                         {order.status.replace('_', ' ')}
                                                     </span>
                                                 </div>
-                                                <p className="text-slate-400 text-xs mt-0.5 truncate">
+                                                <p className="text-[#A08B74] text-xs mt-0.5 truncate">
                                                     {order.genre || 'Custom'} · {order.voice_gender || order.mood || 'Custom'} ·{' '}
                                                     {new Date(order.created_at).toLocaleDateString('en-NG')}
                                                 </p>
@@ -326,14 +326,14 @@ const Admin: React.FC = () => {
                                         </div>
 
                                         <div className="flex items-center gap-2 shrink-0">
-                                            <span className="text-sm font-bold text-white">
+                                            <span className="text-sm font-bold text-[#1C1008]">
                                                 ₦{(order.amount / 100).toLocaleString('en-NG')}
                                             </span>
                                             <select
                                                 value={order.status}
                                                 onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
                                                 disabled={updatingId === order.id}
-                                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                                                className="bg-background border border-background-border rounded-lg px-3 py-1.5 text-[#1C1008] text-xs focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                                             >
                                                 <option value="in_production">In Production</option>
                                                 <option value="completed">Completed</option>
@@ -341,7 +341,7 @@ const Admin: React.FC = () => {
                                             </select>
                                             <button
                                                 onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
-                                                className="size-8 flex items-center justify-center rounded-lg bg-background border border-background-border text-slate-400 hover:text-white transition-colors"
+                                                className="size-8 flex items-center justify-center rounded-lg bg-background border border-background-border text-[#A08B74] hover:text-[#1C1008] transition-colors"
                                             >
                                                 <span className="material-symbols-outlined text-sm">
                                                     {expandedId === order.id ? 'expand_less' : 'expand_more'}
@@ -356,24 +356,24 @@ const Admin: React.FC = () => {
                                             {/* Basic Info */}
                                             <div className="grid grid-cols-2 gap-4 pb-4 border-b border-background-border">
                                                 <div>
-                                                    <span className="text-slate-500 text-xs uppercase tracking-wider">For</span>
-                                                    <p className="text-white font-medium">{order.recipient_type || '—'}</p>
+                                                    <span className="text-[#A08B74] text-xs uppercase tracking-wider">For</span>
+                                                    <p className="text-[#1C1008] font-medium">{order.recipient_type || '—'}</p>
                                                 </div>
                                                 <div>
-                                                    <span className="text-slate-500 text-xs uppercase tracking-wider">From</span>
-                                                    <p className="text-white font-medium">{order.sender_name || '—'}</p>
+                                                    <span className="text-[#A08B74] text-xs uppercase tracking-wider">From</span>
+                                                    <p className="text-[#1C1008] font-medium">{order.sender_name || '—'}</p>
                                                 </div>
                                                 <div>
-                                                    <span className="text-slate-500 text-xs uppercase tracking-wider">Voice</span>
-                                                    <p className="text-white font-medium">{order.voice_gender || '—'}</p>
+                                                    <span className="text-[#A08B74] text-xs uppercase tracking-wider">Voice</span>
+                                                    <p className="text-[#1C1008] font-medium">{order.voice_gender || '—'}</p>
                                                 </div>
                                                 <div>
-                                                    <span className="text-slate-500 text-xs uppercase tracking-wider">Delivery Date</span>
-                                                    <p className="text-white font-medium">{new Date(order.delivery_date).toLocaleDateString('en-NG')}</p>
+                                                    <span className="text-[#A08B74] text-xs uppercase tracking-wider">Delivery Date</span>
+                                                    <p className="text-[#1C1008] font-medium">{new Date(order.delivery_date).toLocaleDateString('en-NG')}</p>
                                                 </div>
                                                 <div className="col-span-2">
-                                                    <span className="text-slate-500 text-xs uppercase tracking-wider">Payment Ref</span>
-                                                    <p className="text-white font-mono text-xs break-all">{order.paystack_reference || '—'}</p>
+                                                    <span className="text-[#A08B74] text-xs uppercase tracking-wider">Payment Ref</span>
+                                                    <p className="text-[#1C1008] font-mono text-xs break-all">{order.paystack_reference || '—'}</p>
                                                 </div>
                                             </div>
 
@@ -382,25 +382,25 @@ const Admin: React.FC = () => {
                                                 {order.special_qualities && (
                                                     <div>
                                                         <span className="text-primary text-xs uppercase tracking-wider font-bold mb-1 block">Special Qualities</span>
-                                                        <p className="text-white leading-relaxed bg-black/20 p-3 rounded-lg border border-white/5 whitespace-pre-wrap">{order.special_qualities}</p>
+                                                        <p className="text-[#78614A] leading-relaxed bg-[#1C1008]/5 p-3 rounded-lg border border-background-border whitespace-pre-wrap">{order.special_qualities}</p>
                                                     </div>
                                                 )}
                                                 {order.favorite_memories && (
                                                     <div>
                                                         <span className="text-primary text-xs uppercase tracking-wider font-bold mb-1 block">Favorite Memories</span>
-                                                        <p className="text-white leading-relaxed bg-black/20 p-3 rounded-lg border border-white/5 whitespace-pre-wrap">{order.favorite_memories}</p>
+                                                        <p className="text-[#78614A] leading-relaxed bg-[#1C1008]/5 p-3 rounded-lg border border-background-border whitespace-pre-wrap">{order.favorite_memories}</p>
                                                     </div>
                                                 )}
                                                 {order.special_message && (
                                                     <div>
                                                         <span className="text-primary text-xs uppercase tracking-wider font-bold mb-1 block">Special Message</span>
-                                                        <p className="text-white leading-relaxed bg-black/20 p-3 rounded-lg border border-white/5 whitespace-pre-wrap">{order.special_message}</p>
+                                                        <p className="text-[#78614A] leading-relaxed bg-[#1C1008]/5 p-3 rounded-lg border border-background-border whitespace-pre-wrap">{order.special_message}</p>
                                                     </div>
                                                 )}
                                                 {order.story && !order.special_qualities && (
                                                     <div>
                                                         <span className="text-primary text-xs uppercase tracking-wider font-bold mb-1 block">Story Brief (Legacy)</span>
-                                                        <p className="text-white leading-relaxed bg-black/20 p-3 rounded-lg border border-white/5 whitespace-pre-wrap">{order.story}</p>
+                                                        <p className="text-[#78614A] leading-relaxed bg-[#1C1008]/5 p-3 rounded-lg border border-background-border whitespace-pre-wrap">{order.story}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -409,13 +409,13 @@ const Admin: React.FC = () => {
                                             {order.ai_brief ? (
                                                 <div className="pt-4 border-t border-background-border">
                                                     <div className="flex items-center gap-2 mb-2">
-                                                        <span className="material-symbols-outlined text-base text-violet-400">auto_awesome</span>
-                                                        <span className="text-violet-400 text-xs uppercase tracking-wider font-bold">AI Production Brief</span>
+                                                        <span className="material-symbols-outlined text-base text-violet-500">auto_awesome</span>
+                                                        <span className="text-violet-600 text-xs uppercase tracking-wider font-bold">AI Production Brief</span>
                                                     </div>
-                                                    <p className="text-white/90 leading-relaxed bg-violet-500/5 border border-violet-500/20 p-3 rounded-lg whitespace-pre-wrap text-sm">{order.ai_brief}</p>
+                                                    <p className="text-[#78614A] leading-relaxed bg-violet-500/5 border border-violet-500/20 p-3 rounded-lg whitespace-pre-wrap text-sm">{order.ai_brief}</p>
                                                 </div>
                                             ) : (
-                                                <div className="pt-4 border-t border-background-border flex items-center gap-2 text-slate-600 text-xs">
+                                                <div className="pt-4 border-t border-background-border flex items-center gap-2 text-[#A08B74] text-xs">
                                                     <span className="material-symbols-outlined text-sm">hourglass_empty</span>
                                                     AI brief pending generation
                                                 </div>
@@ -430,14 +430,14 @@ const Admin: React.FC = () => {
                     {/* Pagination */}
                     {pagination && pagination.totalPages > 1 && (
                         <div className="px-6 py-4 border-t border-background-border flex items-center justify-between gap-4">
-                            <span className="text-xs text-slate-500 font-display">
+                            <span className="text-xs text-[#A08B74] font-display">
                                 Page {pagination.page} of {pagination.totalPages}
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); }}
                                     disabled={!pagination.hasPrev}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-background border border-background-border text-sm text-white disabled:opacity-40 hover:border-primary/50 transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-background border border-background-border text-sm text-[#1C1008] disabled:opacity-40 hover:border-primary/50 transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-sm">chevron_left</span>
                                     Prev
@@ -445,7 +445,7 @@ const Admin: React.FC = () => {
                                 <button
                                     onClick={() => { setCurrentPage(p => p + 1); }}
                                     disabled={!pagination.hasNext}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-background border border-background-border text-sm text-white disabled:opacity-40 hover:border-primary/50 transition-colors"
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-background border border-background-border text-sm text-[#1C1008] disabled:opacity-40 hover:border-primary/50 transition-colors"
                                 >
                                     Next
                                     <span className="material-symbols-outlined text-sm">chevron_right</span>

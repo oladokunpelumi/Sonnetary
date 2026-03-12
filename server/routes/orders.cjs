@@ -76,6 +76,12 @@ function computeOrderProgress(order) {
         timeLeft: { days, hours, minutes, seconds },
         amount: order.amount,
         aiBrief: order.ai_brief || null,
+        recipientType: order.recipient_type || null,
+        senderName: order.sender_name || null,
+        voiceGender: order.voice_gender || null,
+        specialQualities: order.special_qualities || null,
+        favoriteMemories: order.favorite_memories || null,
+        specialMessage: order.special_message || null,
     };
 }
 

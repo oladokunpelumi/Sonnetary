@@ -11,13 +11,17 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#ec1337',
-          dark: '#c40f2e',
+          DEFAULT: '#F97316',
+          dark: '#EA580C',
         },
         background: {
-          DEFAULT: '#1a0d0e',
-          surface: '#2a1518',
-          border: '#482329',
+          DEFAULT: '#FFFDF5',
+          surface: '#FFF8ED',
+          border: '#F0D9A8',
+        },
+        accent: {
+          teal: '#0D9488',
+          gold: '#D97706',
         },
       },
       fontFamily: {

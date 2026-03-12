@@ -13,10 +13,10 @@ const Header: React.FC = () => {
   }, [location.pathname]);
 
   const navLinkClass = (path: string) =>
-    `text-sm font-medium transition-colors ${location.pathname === path ? 'text-white' : 'text-slate-400 hover:text-white'}`;
+    `text-sm font-medium transition-colors ${location.pathname === path ? 'text-[#1C1008]' : 'text-[#78614A] hover:text-[#1C1008]'}`;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-background-border">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-background-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -24,7 +24,7 @@ const Header: React.FC = () => {
             <div className="size-8 text-primary">
               <span className="material-symbols-outlined !text-[32px]">graphic_eq</span>
             </div>
-            <h2 className="text-white text-xl font-bold tracking-tight font-display">Sonnetary</h2>
+            <h2 className="text-[#1C1008] text-xl font-bold tracking-tight font-display">Sonnetary</h2>
           </Link>
 
           {/* Desktop nav */}
@@ -33,7 +33,7 @@ const Header: React.FC = () => {
             <Link to="/library" className={navLinkClass('/library')}>Library</Link>
             <button
               onClick={() => setIsTrackModalOpen(true)}
-              className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              className="text-sm font-medium text-[#78614A] hover:text-[#1C1008] transition-colors"
             >
               Track Order
             </button>
@@ -43,7 +43,7 @@ const Header: React.FC = () => {
           <div className="hidden md:flex items-center gap-4">
             <Link
               to="/create"
-              className="flex items-center justify-center rounded-lg h-10 px-6 bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-[0_0_15px_rgba(236,19,55,0.4)] tracking-wide"
+              className="flex items-center justify-center rounded-lg h-10 px-6 bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-[0_0_15px_rgba(249,115,22,0.3)] tracking-wide"
             >
               Create Song
             </Link>
@@ -53,13 +53,13 @@ const Header: React.FC = () => {
           <div className="flex items-center gap-2 md:hidden">
             <button
               onClick={() => setIsTrackModalOpen(true)}
-              className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-3 py-2"
+              className="text-sm font-medium text-[#78614A] hover:text-[#1C1008] transition-colors px-3 py-2"
             >
               Track
             </button>
             <button
               onClick={() => setIsMobileMenuOpen(prev => !prev)}
-              className="text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="text-[#1C1008] p-2 rounded-lg hover:bg-[#1C1008]/5 transition-colors"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               <span className="material-symbols-outlined">
@@ -72,23 +72,23 @@ const Header: React.FC = () => {
 
       {/* Mobile dropdown menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-background/95 backdrop-blur-md border-t border-background-border">
+        <div className="md:hidden bg-background/98 backdrop-blur-md border-t border-background-border">
           <nav className="flex flex-col px-4 py-4 gap-1">
             <Link
               to="/"
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-primary/10 text-primary' : 'text-[#78614A] hover:text-[#1C1008] hover:bg-[#1C1008]/5'}`}
             >
               Home
             </Link>
             <Link
               to="/library"
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/library' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/library' ? 'bg-primary/10 text-primary' : 'text-[#78614A] hover:text-[#1C1008] hover:bg-[#1C1008]/5'}`}
             >
               Library
             </Link>
             <button
               onClick={() => { setIsTrackModalOpen(true); setIsMobileMenuOpen(false); }}
-              className="px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors text-left"
+              className="px-4 py-3 rounded-lg text-sm font-medium text-[#78614A] hover:text-[#1C1008] hover:bg-[#1C1008]/5 transition-colors text-left"
             >
               Track Order
             </button>

@@ -40,23 +40,23 @@ const FAQ: React.FC = () => {
     };
 
     return (
-        <section className="py-24 bg-background-surface text-white border-y border-background-border">
+        <section className="py-24 bg-background-surface border-y border-background-border">
             <div className="max-w-4xl mx-auto px-6">
-                <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 font-display">
+                <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 font-display text-[#1C1008]">
                     Frequently Asked<br />Questions
                 </h2>
 
                 <div className="space-y-0">
                     {QA.map((item, idx) => (
-                        <div key={idx} className="border-b border-white/10">
+                        <div key={idx} className="border-b border-background-border">
                             <button
                                 onClick={() => toggleOpen(idx)}
                                 className="w-full flex items-center justify-between py-6 text-left focus:outline-none group"
                             >
-                                <h3 className="text-xl md:text-2xl font-display font-medium">
+                                <h3 className="text-xl md:text-2xl font-display font-medium text-[#1C1008]">
                                     {item.q}
                                 </h3>
-                                <div className="text-white/40 group-hover:text-white transition-colors shrink-0 ml-4">
+                                <div className="text-[#A08B74] group-hover:text-[#1C1008] transition-colors shrink-0 ml-4">
                                     {openIndex === idx ? <Minus className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                                 </div>
                             </button>
@@ -64,7 +64,7 @@ const FAQ: React.FC = () => {
                             <div
                                 className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === idx ? 'max-h-[800px] mb-8 opacity-100' : 'max-h-0 opacity-0'}`}
                             >
-                                <div className="text-base md:text-lg opacity-80 leading-relaxed font-body whitespace-pre-wrap">
+                                <div className="text-base md:text-lg text-[#78614A] leading-relaxed font-body whitespace-pre-wrap">
                                     {item.a}
                                 </div>
                             </div>
@@ -73,9 +73,9 @@ const FAQ: React.FC = () => {
                 </div>
 
                 <div className="mt-20 text-center flex flex-col items-center">
-                    <h4 className="text-xl font-bold mb-2 font-display">Got More Questions?</h4>
-                    <p className="text-base text-slate-400 font-body">
-                        Reach out to us at <a href="mailto:hello@sonnetary.com" className="text-primary hover:text-primary-light transition-colors">hello@sonnetary.com</a>
+                    <h4 className="text-xl font-bold mb-2 font-display text-[#1C1008]">Got More Questions?</h4>
+                    <p className="text-base text-[#78614A] font-body">
+                        Reach out to us at <a href="mailto:hello@sonnetary.com" className="text-primary hover:text-primary-dark transition-colors">hello@sonnetary.com</a>
                     </p>
                 </div>
             </div>

@@ -116,9 +116,9 @@ const PaymentSuccess: React.FC = () => {
         return (
             <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <span className="material-symbols-outlined text-6xl text-red-400">error</span>
-                <h2 className="text-2xl font-bold text-white font-display">Something Went Wrong</h2>
-                <p className="text-slate-400 font-body text-center">No payment reference was provided in the URL.</p>
-                <Link to="/create" className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-red-600 transition-all">
+                <h2 className="text-2xl font-bold text-[#1C1008] font-display">Something Went Wrong</h2>
+                <p className="text-[#78614A] font-body text-center">No payment reference was provided in the URL.</p>
+                <Link to="/create" className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all">
                     Start Over
                 </Link>
             </div>
@@ -129,8 +129,8 @@ const PaymentSuccess: React.FC = () => {
         return (
             <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <span className="material-symbols-outlined text-6xl text-primary animate-spin">progress_activity</span>
-                <h2 className="text-2xl font-bold text-white font-display">Confirming Your Payment...</h2>
-                <p className="text-slate-400 font-body">Please wait while we verify your payment and set up your song.</p>
+                <h2 className="text-2xl font-bold text-[#1C1008] font-display">Confirming Your Payment...</h2>
+                <p className="text-[#78614A] font-body">Please wait while we verify your payment and set up your song.</p>
             </div>
         );
     }
@@ -139,9 +139,9 @@ const PaymentSuccess: React.FC = () => {
         return (
             <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
                 <span className="material-symbols-outlined text-6xl text-red-400">error</span>
-                <h2 className="text-2xl font-bold text-white font-display">Something Went Wrong</h2>
-                <p className="text-slate-400 font-body text-center">We couldn't verify your payment or create your order. Please contact support if you were charged.</p>
-                <Link to="/create" className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-red-600 transition-all">
+                <h2 className="text-2xl font-bold text-[#1C1008] font-display">Something Went Wrong</h2>
+                <p className="text-[#78614A] font-body text-center">We couldn't verify your payment or create your order. Please contact support if you were charged.</p>
+                <Link to="/create" className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all">
                     Try Again
                 </Link>
             </div>
@@ -153,47 +153,47 @@ const PaymentSuccess: React.FC = () => {
             {/* Success Animation */}
             <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-                <div className="relative w-24 h-24 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
+                <div className="relative w-24 h-24 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
                     <span className="material-symbols-outlined text-5xl text-primary">check_circle</span>
                 </div>
             </div>
 
             <div className="text-center">
-                <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 font-display">Payment Successful!</h2>
-                <p className="text-slate-300 text-lg font-body max-w-md">
+                <h2 className="text-3xl md:text-4xl font-bold text-[#1C1008] mb-3 font-display">Payment Successful!</h2>
+                <p className="text-[#78614A] text-lg font-body max-w-md">
                     Your custom song is now in production. Our team of professional artists will begin composing your masterpiece.
                 </p>
-                <p className="text-slate-500 text-sm mt-2 font-body">Redirecting to your order page in a moment...</p>
+                <p className="text-[#A08B74] text-sm mt-2 font-body">Redirecting to your order page in a moment...</p>
             </div>
 
             <div className="bg-background-surface border border-background-border rounded-xl p-6 w-full max-w-md">
                 <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-slate-400 font-display">Order ID</span>
-                    <span className="text-sm text-white font-mono">{orderId?.slice(0, 8).toUpperCase()}...</span>
+                    <span className="text-sm text-[#A08B74] font-display">Order ID</span>
+                    <span className="text-sm text-[#1C1008] font-mono">{orderId?.slice(0, 8).toUpperCase()}...</span>
                 </div>
                 <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-slate-400 font-display">Amount Paid</span>
-                    <span className="text-sm text-white font-bold">{amountPaid}</span>
+                    <span className="text-sm text-[#A08B74] font-display">Amount Paid</span>
+                    <span className="text-sm text-[#1C1008] font-bold">{amountPaid}</span>
                 </div>
                 <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-slate-400 font-display">Payment via</span>
-                    <span className="text-sm text-white font-medium">{stripeSessionId ? 'Stripe' : 'Paystack'}</span>
+                    <span className="text-sm text-[#A08B74] font-display">Payment via</span>
+                    <span className="text-sm text-[#1C1008] font-medium">{stripeSessionId ? 'Stripe' : 'Paystack'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400 font-display">Estimated Delivery</span>
-                    <span className="text-sm text-white font-medium">~3 days</span>
+                    <span className="text-sm text-[#A08B74] font-display">Estimated Delivery</span>
+                    <span className="text-sm text-[#1C1008] font-medium">~3 days</span>
                 </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <Link
                     to={orderId ? `/track?id=${orderId}` : '/track'}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-red-600 transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all"
                 >
                     <span className="material-symbols-outlined">visibility</span>
                     Track Your Order
                 </Link>
-                <Link to="/" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">
+                <Link to="/" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-[#1C1008]/5 border border-background-border text-[#1C1008] font-bold hover:bg-[#1C1008]/10 transition-all">
                     Back to Home
                 </Link>
             </div>
