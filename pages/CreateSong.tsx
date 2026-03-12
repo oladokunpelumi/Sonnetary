@@ -315,9 +315,17 @@ const CreateSong: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <h4 className="text-xl font-bold text-[#1C1008] font-display mb-1">
-                        Total Due: {paymentProvider === 'stripe' ? '$25 USD' : '₦30,000'}
-                      </h4>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-2xl font-bold text-[#1C1008] font-display">
+                          {paymentProvider === 'stripe' ? '$25' : '₦30,000'}
+                        </span>
+                        <span className="text-sm text-[#A08B74] line-through font-display">
+                          {paymentProvider === 'stripe' ? '$50' : '₦60,000'}
+                        </span>
+                        <span className="px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-full font-display tracking-wide">
+                          50% OFF
+                        </span>
+                      </div>
                       <p className="text-sm text-[#78614A] font-body">
                         Delivery in 3 Days • Secure Payment via {paymentProvider === 'stripe' ? 'Stripe' : 'Paystack'}
                       </p>
