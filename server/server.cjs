@@ -107,7 +107,7 @@ app.get('/api/health', (req, res) => {
 // Must come after all API routes so non-API paths serve index.html
 if (IS_PROD) {
     const distPath = path.join(__dirname, '..', 'dist');
-    app.get('*', (req, res) => {
+    app.get('/{*path}', (req, res) => {
         res.sendFile(path.join(distPath, 'index.html'));
     });
 }
