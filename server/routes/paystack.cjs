@@ -23,7 +23,7 @@ const DELIVERY_DAYS = 3;
 router.post('/initialize', async (req, res) => {
     try {
         const { email, amount, metadata } = req.body;
-        const customerEmail = email || 'guest@sonnetary.com';
+        const customerEmail = email || 'guest@yourgbedu.com';
 
         const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
             method: 'POST',

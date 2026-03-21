@@ -222,7 +222,7 @@ const Admin: React.FC = () => {
             <header className="bg-background-surface border-b border-background-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
-                    <span className="font-bold text-[#1C1008] font-display">Sonnetary Admin</span>
+                    <span className="font-bold text-[#1C1008] font-display">YourGbedu Admin</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <button

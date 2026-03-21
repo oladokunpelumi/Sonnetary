@@ -23,14 +23,14 @@ const PaymentSuccess: React.FC = () => {
     useEffect(() => {
         if (!hasReference) return;
 
-        const briefRaw = sessionStorage.getItem('sonnetary_brief');
+        const briefRaw = sessionStorage.getItem('yourgbedu_brief');
         const brief = briefRaw ? JSON.parse(briefRaw) : {};
 
         const finalize = (id: string) => {
             setOrderId(id);
             setStatus('success');
-            sessionStorage.setItem('sonnetary_track_id', id);
-            sessionStorage.removeItem('sonnetary_brief');
+            sessionStorage.setItem('yourgbedu_track_id', id);
+            sessionStorage.removeItem('yourgbedu_brief');
             setTimeout(() => {
                 navigate(`/track?id=${id}`, { replace: false });
             }, 4000);

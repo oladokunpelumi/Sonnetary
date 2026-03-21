@@ -9,7 +9,7 @@ router.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     const validUser = process.env.ADMIN_USERNAME || 'admin';
-    const validPass = process.env.ADMIN_PASSWORD || 'sonnetary2026';
+    const validPass = process.env.ADMIN_PASSWORD || 'yourgbedu2026';
 
     if (username === validUser && password === validPass) {
         // Issue an admin token

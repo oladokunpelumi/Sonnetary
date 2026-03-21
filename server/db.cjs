@@ -14,7 +14,7 @@ if (process.env.DATABASE_URL) {
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'sonnetary.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'yourgbedu.db');
 const db = new Database(DB_PATH);
 
 // Enable WAL mode for better concurrent access

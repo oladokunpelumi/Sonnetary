@@ -113,7 +113,7 @@ if (IS_PROD) {
 }
 
 app.listen(PORT, () => {
-    console.log(`🎵 Sonnetary server running on http://localhost:${PORT}`);
+    console.log(`🎵 YourGbedu server running on http://localhost:${PORT}`);
     console.log(`📁 Serving audio from: ${path.join(__dirname, '..', 'musics')}`);
     console.log(`🔐 CORS origin: ${IS_PROD ? CLIENT_URL : 'all (dev mode)'}`);
     if (IS_PROD) {

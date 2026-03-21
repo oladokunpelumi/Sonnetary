@@ -1,5 +1,5 @@
 /**
- * PostgreSQL database adapter for Sonnetary.
+ * PostgreSQL database adapter for YourGbedu.
  * Used when DATABASE_URL is set in the environment (e.g. Railway Postgres add-on).
  *
  * Provides the same synchronous-style API as better-sqlite3 so the rest of the

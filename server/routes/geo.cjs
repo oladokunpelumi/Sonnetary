@@ -22,7 +22,7 @@ router.get('/country', async (req, res) => {
         }
 
         const response = await fetch(`https://ipapi.co/${ip}/json/`, {
-            headers: { 'User-Agent': 'Sonnetary/1.0' },
+            headers: { 'User-Agent': 'YourGbedu/1.0' },
             signal: AbortSignal.timeout(3000), // 3s timeout
         });
 

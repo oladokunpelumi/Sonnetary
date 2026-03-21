@@ -76,7 +76,7 @@ router.get('/verify', (req, res) => {
             .run(userId, record.email, new Date().toISOString());
     }
 
-    const isAdmin = record.email.toLowerCase() === (process.env.ADMIN_EMAIL || 'admin@sonnetary.com').toLowerCase();
+    const isAdmin = record.email.toLowerCase() === (process.env.ADMIN_EMAIL || 'admin@yourgbedu.com').toLowerCase();
     const jwtToken = jwt.sign(
         { userId, email: record.email, role: isAdmin ? 'admin' : 'user' },
         JWT_SECRET,

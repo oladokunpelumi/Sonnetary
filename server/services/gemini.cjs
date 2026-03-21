@@ -1,5 +1,5 @@
 /**
- * Server-side Gemini AI service for Sonnetary.
+ * Server-side Gemini AI service for YourGbedu.
  *
  * Generates a concise, actionable production brief for the music team
  * from a customer's order data. The brief is stored in the DB and shown

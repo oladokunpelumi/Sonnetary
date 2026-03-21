@@ -20,7 +20,7 @@ router.post('/create-checkout-session', async (req, res) => {
             specialMessage,
         } = req.body;
 
-        const resolvedEmail = email || customerEmail || 'guest@sonnetary.com';
+        const resolvedEmail = email || customerEmail || 'guest@yourgbedu.com';
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -31,7 +31,7 @@ router.post('/create-checkout-session', async (req, res) => {
                     price_data: {
                         currency: 'usd',
                         product_data: {
-                            name: 'Custom Song — Sonnetary',
+                            name: 'Custom Song — YourGbedu',
                             description: `A personalised ${genre || 'custom'} song crafted just for your ${recipientType || 'loved one'}.`,
                         },
                         unit_amount: 2500, // $25.00 USD

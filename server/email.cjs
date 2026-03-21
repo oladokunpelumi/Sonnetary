@@ -1,7 +1,7 @@
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Sonnetary <onboarding@resend.dev>';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'YourGbedu <onboarding@resend.dev>';
 
 /**
  * Send a payment/order confirmation email.
@@ -49,7 +49,7 @@ async function sendConfirmationEmail({ to, orderId, genre, mood, deliveryDate, r
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎵 Sonnetary</h1>
+      <h1>🎵 YourGbedu</h1>
       <p>Your custom song is in production!</p>
     </div>
     <div class="body">
@@ -64,7 +64,7 @@ async function sendConfirmationEmail({ to, orderId, genre, mood, deliveryDate, r
       </div>
       <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/track" class="cta">Track Your Order →</a>
     </div>
-    <div class="footer">Sonnetary • Your story, our music. © ${new Date().getFullYear()}</div>
+    <div class="footer">YourGbedu • Your story, our music. © ${new Date().getFullYear()}</div>
   </div>
 </body>
 </html>`;
@@ -73,7 +73,7 @@ async function sendConfirmationEmail({ to, orderId, genre, mood, deliveryDate, r
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `🎵 Your Sonnetary order #${orderId} is in production!`,
+      subject: `🎵 Your YourGbedu order #${orderId} is in production!`,
       html,
     });
     console.log('[Email] Sent confirmation to:', to, '| ID:', result.data?.id);
@@ -115,15 +115,15 @@ async function sendMagicLinkEmail({ to, token }) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎵 Sonnetary</h1>
+      <h1>🎵 YourGbedu</h1>
       <p>Sign in to your account</p>
     </div>
     <div class="body">
-      <p style="color:#d1d5db; line-height:1.6;">Click the button below to securely sign in to Sonnetary. This link will expire in 15 minutes.</p>
-      <a href="${loginUrl}" class="cta">Sign In to Sonnetary</a>
+      <p style="color:#d1d5db; line-height:1.6;">Click the button below to securely sign in to YourGbedu. This link will expire in 15 minutes.</p>
+      <a href="${loginUrl}" class="cta">Sign In to YourGbedu</a>
       <p style="color:#6b7280; font-size:12px; margin-top:20px;">If you didn't request this email, you can safely ignore it.</p>
     </div>
-    <div class="footer">Sonnetary • Your story, our music. © ${new Date().getFullYear()}</div>
+    <div class="footer">YourGbedu • Your story, our music. © ${new Date().getFullYear()}</div>
   </div>
 </body>
 </html>`;
@@ -132,7 +132,7 @@ async function sendMagicLinkEmail({ to, token }) {
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: '🎵 Sign in to Sonnetary',
+      subject: '🎵 Sign in to YourGbedu',
       html,
     });
     console.log('[Email] Sent magic link to:', to, '| ID:', result.data?.id);
@@ -181,7 +181,7 @@ async function sendCompletionEmail({ to, orderId, genre, senderName, recipientTy
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎵 Sonnetary</h1>
+      <h1>🎵 YourGbedu</h1>
       <p>Your custom song is ready!</p>
     </div>
     <div class="body">
@@ -203,7 +203,7 @@ async function sendCompletionEmail({ to, orderId, genre, senderName, recipientTy
       </p>
       <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/#/track" class="cta">View Your Order →</a>
     </div>
-    <div class="footer">Sonnetary • Your story, our music. © ${new Date().getFullYear()}</div>
+    <div class="footer">YourGbedu • Your story, our music. © ${new Date().getFullYear()}</div>
   </div>
 </body>
 </html>`;
@@ -212,7 +212,7 @@ async function sendCompletionEmail({ to, orderId, genre, senderName, recipientTy
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to,
-      subject: `🎵 Your Sonnetary song #${orderId} is ready!`,
+      subject: `🎵 Your YourGbedu song #${orderId} is ready!`,
       html,
     });
     console.log('[Email] Sent completion email to:', to, '| ID:', result.data?.id);

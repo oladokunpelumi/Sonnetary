@@ -24,7 +24,7 @@ const Header: React.FC = () => {
             <div className="size-8 text-primary">
               <span className="material-symbols-outlined !text-[32px]">graphic_eq</span>
             </div>
-            <h2 className="text-[#1C1008] text-xl font-bold tracking-tight font-display">Sonnetary</h2>
+            <h2 className="text-[#1C1008] text-xl font-bold tracking-tight font-display">YourGbedu</h2>
           </Link>
 
           {/* Desktop nav */}

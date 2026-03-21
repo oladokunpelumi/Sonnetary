@@ -21,14 +21,14 @@ const OrderStatus: React.FC = () => {
     const params = new URLSearchParams(location.search);
     const urlId = params.get('id');
     const urlEmail = params.get('email');
-    const trackId = urlId || urlEmail || sessionStorage.getItem('sonnetary_track_id');
+    const trackId = urlId || urlEmail || sessionStorage.getItem('yourgbedu_track_id');
 
     if (!trackId) {
       setLoading(false);
       return;
     }
 
-    sessionStorage.setItem('sonnetary_track_id', trackId);
+    sessionStorage.setItem('yourgbedu_track_id', trackId);
 
     const fetchOrders = async () => {
       try {

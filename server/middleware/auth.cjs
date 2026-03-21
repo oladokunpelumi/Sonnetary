@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_dev_secret_change_in_prod';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@sonnetary.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@yourgbedu.com';
 
 /**
  * Middleware: Verify JWT and attach user to request.

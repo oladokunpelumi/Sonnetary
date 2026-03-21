@@ -77,7 +77,7 @@ const CreateSong: React.FC = () => {
     setError(null);
 
     const briefData = { recipientType, senderName, genre, voiceGender, specialQualities, favoriteMemories, specialMessage, customerEmail };
-    sessionStorage.setItem('sonnetary_brief', JSON.stringify(briefData));
+    sessionStorage.setItem('yourgbedu_brief', JSON.stringify(briefData));
 
     try {
       if (paymentProvider === 'stripe') {
