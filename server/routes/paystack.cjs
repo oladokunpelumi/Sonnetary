@@ -116,8 +116,9 @@ router.post('/webhook', (req, res) => {
 
         const id = uuidv4();
         const createdAt = new Date().toISOString();
+        const actualDeliveryDays = metadata?.fastDelivery ? 1 : DELIVERY_DAYS;
         const deliveryDate = new Date(
-            Date.now() + DELIVERY_DAYS * 24 * 60 * 60 * 1000
+            Date.now() + actualDeliveryDays * 24 * 60 * 60 * 1000
         ).toISOString();
 
         try {

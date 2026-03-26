@@ -1,204 +1,270 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const PaymentSuccess: React.FC = () => {
-    const [status, setStatus] = useState<'creating' | 'success' | 'error'>('creating');
-    const [orderId, setOrderId] = useState<string | null>(null);
-    const [amountPaid, setAmountPaid] = useState<string>('');
-    const location = useLocation();
-    const navigate = useNavigate();
+  const [status, setStatus] = useState<'creating' | 'success' | 'error'>('creating');
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [amountPaid, setAmountPaid] = useState<string>('');
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    // Stripe: session_id is inside the hash (we control the success URL format)
-    // so location.search from React Router works correctly.
-    const hashParams = new URLSearchParams(location.search);
-    const stripeSessionId = hashParams.get('session_id');
+  // Stripe: session_id is inside the hash (we control the success URL format)
+  // so location.search from React Router works correctly.
+  const hashParams = new URLSearchParams(location.search);
+  const stripeSessionId = hashParams.get('session_id');
 
-    // Paystack: appends params BEFORE the hash, so use window.location.search
-    const urlParams = new URLSearchParams(window.location.search);
-    const paystackReference = urlParams.get('reference') || urlParams.get('trxref');
+  // Paystack: appends params BEFORE the hash, so use window.location.search
+  const urlParams = new URLSearchParams(window.location.search);
+  const paystackReference = urlParams.get('reference') || urlParams.get('trxref');
 
-    const hasReference = !!(stripeSessionId || paystackReference);
+  const hasReference = !!(stripeSessionId || paystackReference);
 
-    useEffect(() => {
-        if (!hasReference) return;
+  useEffect(() => {
+    if (!hasReference) return;
 
-        const briefRaw = sessionStorage.getItem('yourgbedu_brief');
-        const brief = briefRaw ? JSON.parse(briefRaw) : {};
+    const briefRaw = sessionStorage.getItem('yourgbedu_brief');
+    const brief = briefRaw ? JSON.parse(briefRaw) : {};
 
-        const finalize = (id: string) => {
-            setOrderId(id);
-            setStatus('success');
-            sessionStorage.setItem('yourgbedu_track_id', id);
-            sessionStorage.removeItem('yourgbedu_brief');
-            setTimeout(() => {
-                navigate(`/track?id=${id}`, { replace: false });
-            }, 4000);
-        };
+    const finalize = (id: string) => {
+      setOrderId(id);
+      setStatus('success');
+      sessionStorage.setItem('yourgbedu_track_id', id);
+      sessionStorage.removeItem('yourgbedu_brief');
+      setTimeout(() => {
+        navigate(`/track?id=${id}`, { replace: false });
+      }, 4000);
+    };
 
-        const createOrder = async () => {
-            try {
-                if (stripeSessionId) {
-                    // ── Stripe flow ─────────────────────────────────────────
-                    const verifyRes = await fetch(`/api/verify-session/${stripeSessionId}`);
-                    const verifyData = await verifyRes.json();
+    const createOrder = async () => {
+      try {
+        if (stripeSessionId) {
+          // ── Stripe flow ─────────────────────────────────────────
+          const verifyRes = await fetch(`/api/verify-session/${stripeSessionId}`);
+          const verifyData = await verifyRes.json();
 
-                    if (!verifyData.paid) {
-                        setStatus('error');
-                        return;
-                    }
+          if (!verifyData.paid) {
+            setStatus('error');
+            return;
+          }
 
-                    setAmountPaid('$25 USD');
+          setAmountPaid('$25 USD');
 
-                    const meta = verifyData.metadata || {};
-                    const orderRes = await fetch('/api/orders', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            songTitle: 'Custom Song',
-                            genre: brief.genre || meta.genre || '',
-                            stripeSessionId,
-                            customerEmail: brief.customerEmail || verifyData.customerEmail || meta.customerEmail || '',
-                            recipientType: brief.recipientType || meta.recipientType || '',
-                            senderName: brief.senderName || meta.senderName || '',
-                            voiceGender: brief.voiceGender || meta.voiceGender || '',
-                            specialQualities: brief.specialQualities || meta.specialQualities || '',
-                            favoriteMemories: brief.favoriteMemories || meta.favoriteMemories || '',
-                            specialMessage: brief.specialMessage || meta.specialMessage || '',
-                        }),
-                    });
+          const meta = verifyData.metadata || {};
+          const orderRes = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              songTitle: 'Custom Song',
+              genre: brief.genre || meta.genre || '',
+              stripeSessionId,
+              customerEmail:
+                brief.customerEmail || verifyData.customerEmail || meta.customerEmail || '',
+              recipientType: brief.recipientType || meta.recipientType || '',
+              senderName: brief.senderName || meta.senderName || '',
+              voiceGender: brief.voiceGender || meta.voiceGender || '',
+              specialQualities: brief.specialQualities || meta.specialQualities || '',
+              favoriteMemories: brief.favoriteMemories || meta.favoriteMemories || '',
+              specialMessage: brief.specialMessage || meta.specialMessage || '',
+            }),
+          });
 
-                    const orderData = await orderRes.json();
-                    finalize(orderData.id);
-                } else {
-                    // ── Paystack flow ───────────────────────────────────────
-                    const verifyRes = await fetch(`/api/paystack/verify/${paystackReference}`);
-                    const verifyData = await verifyRes.json();
+          const orderData = await orderRes.json();
+          finalize(orderData.id);
+        } else {
+          // ── Paystack flow ───────────────────────────────────────
+          const verifyRes = await fetch(`/api/paystack/verify/${paystackReference}`);
+          const verifyData = await verifyRes.json();
 
-                    if (!verifyData.paid) {
-                        setStatus('error');
-                        return;
-                    }
+          if (!verifyData.paid) {
+            setStatus('error');
+            return;
+          }
 
-                    setAmountPaid('₦30,000');
+          setAmountPaid('₦30,000');
 
-                    const orderRes = await fetch('/api/orders', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            songTitle: 'Custom Song',
-                            genre: brief.genre || verifyData.metadata?.genre || '',
-                            paystackReference,
-                            customerEmail: brief.customerEmail || verifyData.metadata?.customerEmail || '',
-                            recipientType: brief.recipientType || verifyData.metadata?.recipientType || '',
-                            senderName: brief.senderName || verifyData.metadata?.senderName || '',
-                            voiceGender: brief.voiceGender || verifyData.metadata?.voiceGender || '',
-                            specialQualities: brief.specialQualities || verifyData.metadata?.specialQualities || '',
-                            favoriteMemories: brief.favoriteMemories || verifyData.metadata?.favoriteMemories || '',
-                            specialMessage: brief.specialMessage || verifyData.metadata?.specialMessage || '',
-                        }),
-                    });
+          const orderRes = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              songTitle: 'Custom Song',
+              genre: brief.genre || verifyData.metadata?.genre || '',
+              paystackReference,
+              customerEmail: brief.customerEmail || verifyData.metadata?.customerEmail || '',
+              recipientType: brief.recipientType || verifyData.metadata?.recipientType || '',
+              senderName: brief.senderName || verifyData.metadata?.senderName || '',
+              voiceGender: brief.voiceGender || verifyData.metadata?.voiceGender || '',
+              specialQualities:
+                brief.specialQualities || verifyData.metadata?.specialQualities || '',
+              favoriteMemories:
+                brief.favoriteMemories || verifyData.metadata?.favoriteMemories || '',
+              specialMessage: brief.specialMessage || verifyData.metadata?.specialMessage || '',
+            }),
+          });
 
-                    const orderData = await orderRes.json();
-                    finalize(orderData.id);
-                }
-            } catch (err) {
-                console.error('Order creation error:', err);
-                setStatus('error');
-            }
-        };
+          const orderData = await orderRes.json();
+          finalize(orderData.id);
+        }
+      } catch (err) {
+        console.error('Order creation error:', err);
+        setStatus('error');
+      }
+    };
 
-        createOrder();
+    createOrder();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasReference]);
+  }, [hasReference]);
 
-    if (!hasReference) {
-        return (
-            <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <span className="material-symbols-outlined text-6xl text-red-400">error</span>
-                <h2 className="text-2xl font-bold text-[#1C1008] font-display">Something Went Wrong</h2>
-                <p className="text-[#78614A] font-body text-center">No payment reference was provided in the URL.</p>
-                <Link to="/create" className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all">
-                    Start Over
-                </Link>
-            </div>
-        );
-    }
-
-    if (status === 'creating') {
-        return (
-            <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <span className="material-symbols-outlined text-6xl text-primary animate-spin">progress_activity</span>
-                <h2 className="text-2xl font-bold text-[#1C1008] font-display">Confirming Your Payment...</h2>
-                <p className="text-[#78614A] font-body">Please wait while we verify your payment and set up your song.</p>
-            </div>
-        );
-    }
-
-    if (status === 'error') {
-        return (
-            <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <span className="material-symbols-outlined text-6xl text-red-400">error</span>
-                <h2 className="text-2xl font-bold text-[#1C1008] font-display">Something Went Wrong</h2>
-                <p className="text-[#78614A] font-body text-center">We couldn't verify your payment or create your order. Please contact support if you were charged.</p>
-                <Link to="/create" className="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all">
-                    Try Again
-                </Link>
-            </div>
-        );
-    }
-
+  if (!hasReference) {
     return (
-        <div className="max-w-2xl mx-auto px-6 py-24 flex flex-col items-center justify-center min-h-[60vh] gap-8">
-            {/* Success Animation */}
-            <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-                <div className="relative w-24 h-24 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center">
-                    <span className="material-symbols-outlined text-5xl text-primary">check_circle</span>
-                </div>
-            </div>
-
-            <div className="text-center">
-                <h2 className="text-3xl md:text-4xl font-bold text-[#1C1008] mb-3 font-display">Payment Successful!</h2>
-                <p className="text-[#78614A] text-lg font-body max-w-md">
-                    Your custom song is now in production. Our team of professional artists will begin composing your masterpiece.
-                </p>
-                <p className="text-[#A08B74] text-sm mt-2 font-body">Redirecting to your order page in a moment...</p>
-            </div>
-
-            <div className="bg-background-surface border border-background-border rounded-xl p-6 w-full max-w-md">
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-[#A08B74] font-display">Order ID</span>
-                    <span className="text-sm text-[#1C1008] font-mono">{orderId?.slice(0, 8).toUpperCase()}...</span>
-                </div>
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-[#A08B74] font-display">Amount Paid</span>
-                    <span className="text-sm text-[#1C1008] font-bold">{amountPaid}</span>
-                </div>
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-[#A08B74] font-display">Payment via</span>
-                    <span className="text-sm text-[#1C1008] font-medium">{stripeSessionId ? 'Stripe' : 'Paystack'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#A08B74] font-display">Estimated Delivery</span>
-                    <span className="text-sm text-[#1C1008] font-medium">~3 days</span>
-                </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                <Link
-                    to={orderId ? `/track?id=${orderId}` : '/track'}
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all"
-                >
-                    <span className="material-symbols-outlined">visibility</span>
-                    Track Your Order
-                </Link>
-                <Link to="/" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-[#1C1008]/5 border border-background-border text-[#1C1008] font-bold hover:bg-[#1C1008]/10 transition-all">
-                    Back to Home
-                </Link>
-            </div>
-        </div>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 gap-6 bg-obsidian text-primary">
+        <span className="material-symbols-outlined text-7xl text-red-500 font-light drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+          error
+        </span>
+        <h2 className="text-3xl md:text-4xl font-serif italic tracking-tight">
+          Something Went Wrong
+        </h2>
+        <p className="text-[#e2c15a] font-body text-center max-w-md opacity-80">
+          No payment reference was provided in the URL.
+        </p>
+        <Link
+          to="/create"
+          className="mt-4 flex items-center gap-2 px-8 h-12 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-all font-display text-sm font-bold uppercase tracking-widest"
+        >
+          Start Over
+        </Link>
+      </div>
     );
+  }
+
+  if (status === 'creating') {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 gap-6 bg-obsidian text-primary">
+        <span className="material-symbols-outlined text-6xl text-primary animate-spin">
+          progress_activity
+        </span>
+        <h2 className="text-3xl md:text-4xl font-serif italic tracking-tight">
+          Confirming Payment...
+        </h2>
+        <p className="text-[#e2c15a] font-body opacity-80 max-w-md text-center">
+          Please wait while we verify your payment and set up your song.
+        </p>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 gap-6 bg-obsidian text-primary">
+        <span className="material-symbols-outlined text-7xl text-red-500 font-light drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+          error
+        </span>
+        <h2 className="text-3xl md:text-4xl font-serif italic tracking-tight">
+          Verification Failed
+        </h2>
+        <p className="text-[#e2c15a] font-body text-center max-w-md opacity-80">
+          We couldn't verify your payment or create your order. Please contact support if you were
+          charged.
+        </p>
+        <Link
+          to="/create"
+          className="mt-4 flex items-center gap-2 px-8 h-12 rounded-full bg-primary text-obsidian hover:bg-[#e2c15a] transition-all font-display text-sm font-bold uppercase tracking-widest"
+        >
+          Try Again
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[85vh] flex flex-col md:flex-row bg-obsidian border-t border-obsidian/10 relative overflow-hidden">
+      <div className="flex-1 p-8 md:p-16 lg:p-24 flex flex-col justify-center relative z-10 w-full">
+        {/* Success Animation */}
+        <div className="relative mb-8 self-start">
+          <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+          <div className="relative size-20 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+            <span className="material-symbols-outlined text-4xl text-primary font-light">
+              task_alt
+            </span>
+          </div>
+        </div>
+
+        <div className="mb-10 max-w-lg">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-medium text-primary mb-4 font-serif italic tracking-tight">
+            Payment Successful!
+          </h2>
+          <p className="text-[#e2c15a] text-lg font-body opacity-90 leading-relaxed">
+            Your story is now in the hands of our artists. We've begun composing your royal
+            masterpiece.
+          </p>
+          <p className="text-[#c4a02e] text-sm mt-4 font-body opacity-70 border-l-2 border-primary/30 pl-3">
+            Redirecting to your order tracker...
+          </p>
+        </div>
+
+        <div className="bg-obsidian border border-primary/20 shadow-xl shadow-black/50 rounded-2xl p-6 w-full max-w-lg mb-10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <span className="material-symbols-outlined text-9xl text-primary">receipt_long</span>
+          </div>
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#c4a02e] font-display uppercase tracking-widest">
+                Order ID
+              </span>
+              <span className="text-sm text-primary font-mono bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                {orderId?.slice(0, 8).toUpperCase()}...
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#c4a02e] font-display uppercase tracking-widest">
+                Amount Paid
+              </span>
+              <span className="text-base text-primary font-bold font-display">{amountPaid}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#c4a02e] font-display uppercase tracking-widest">
+                Payment via
+              </span>
+              <span className="text-sm text-[#e2c15a] font-medium">
+                {stripeSessionId ? 'Stripe' : 'Paystack'}
+              </span>
+            </div>
+            <div className="h-px w-full bg-primary/10 my-2" />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#c4a02e] font-display uppercase tracking-widest">
+                Est. Delivery
+              </span>
+              <span className="text-sm text-primary font-bold font-display">~3 days</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg">
+          <Link
+            to={orderId ? `/track?id=${orderId}` : '/track'}
+            className="flex-1 flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-primary text-obsidian text-sm font-bold hover:bg-[#e2c15a] transition-all font-display shadow-lg shadow-primary/20 uppercase tracking-widest"
+          >
+            <span className="material-symbols-outlined text-lg">visibility</span>
+            Track Order
+          </Link>
+          <Link
+            to="/"
+            className="flex-1 flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-transparent border border-primary/30 text-primary text-sm font-bold hover:bg-primary/10 transition-all font-display uppercase tracking-widest"
+          >
+            Home
+          </Link>
+        </div>
+      </div>
+
+      {/* Cinematic Image Side */}
+      <div className="md:w-[45%] lg:w-1/2 relative min-h-[400px] md:min-h-full shrink-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center md:bg-left"
+          style={{ backgroundImage: "url('/images/Composing.png')" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-obsidian via-obsidian/40 to-transparent" />
+      </div>
+    </div>
+  );
 };
 
 export default PaymentSuccess;

@@ -7,59 +7,55 @@ const Header: React.FC = () => {
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
   const navLinkClass = (path: string) =>
-    `text-sm font-medium transition-colors ${location.pathname === path ? 'text-[#1C1008]' : 'text-[#78614A] hover:text-[#1C1008]'}`;
+    `font-bold border-b-2 transition-colors duration-300 ${location.pathname === path ? 'text-[#9f402d] border-[#9f402d]' : 'text-[#5e5e63] border-transparent hover:text-[#9f402d]'}`;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-background-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#fff8f0]/80 backdrop-blur-xl shadow-ambient">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="size-8 text-primary">
-              <span className="material-symbols-outlined !text-[32px]">graphic_eq</span>
-            </div>
-            <h2 className="text-[#1C1008] text-xl font-bold tracking-tight font-display">YourGbedu</h2>
+            <h2 className="text-[#241a00] text-xl md:text-2xl font-semibold tracking-tight italic">
+              YourGbedu
+            </h2>
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className={navLinkClass('/')}>Home</Link>
-            <Link to="/library" className={navLinkClass('/library')}>Library</Link>
+          <nav className="hidden md:flex items-center space-x-12 font-headline italic tracking-tight text-lg">
+            <Link to="/" className={navLinkClass('/')}>
+              Gallery
+            </Link>
+            <Link to="/library" className={navLinkClass('/library')}>
+              Collections
+            </Link>
             <button
               onClick={() => setIsTrackModalOpen(true)}
-              className="text-sm font-medium text-[#78614A] hover:text-[#1C1008] transition-colors"
+              className="text-[#5e5e63] border-b-2 border-transparent hover:text-[#9f402d] transition-colors duration-300 font-bold"
             >
               Track Order
             </button>
           </nav>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center space-x-6">
             <Link
               to="/create"
-              className="flex items-center justify-center rounded-lg h-10 px-6 bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-[0_0_15px_rgba(249,115,22,0.3)] tracking-wide"
+              className="bg-obsidian text-primary px-8 py-2.5 font-label uppercase tracking-widest text-[10px] rounded-full hover:scale-105 transition-transform duration-300 shadow-obsidian"
             >
-              Create Song
+              Score Your Story
             </Link>
           </div>
 
-          {/* Mobile: Track + Hamburger */}
-          <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile menu toggle */}
+          <div className="flex items-center md:hidden">
             <button
-              onClick={() => setIsTrackModalOpen(true)}
-              className="text-sm font-medium text-[#78614A] hover:text-[#1C1008] transition-colors px-3 py-2"
-            >
-              Track
-            </button>
-            <button
-              onClick={() => setIsMobileMenuOpen(prev => !prev)}
-              className="text-[#1C1008] p-2 rounded-lg hover:bg-[#1C1008]/5 transition-colors"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              className="text-[#241a00] p-2 rounded-lg hover:bg-surface-container-highest/40 transition-colors"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               <span className="material-symbols-outlined">
@@ -70,45 +66,46 @@ const Header: React.FC = () => {
         </div>
       </div>
 
+      <div className="bg-[#fff2d8] h-[1px] w-full"></div>
+
       {/* Mobile dropdown menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-background/98 backdrop-blur-md border-t border-background-border">
-          <nav className="flex flex-col px-4 py-4 gap-1">
+        <div className="md:hidden bg-[#fff8f0]/95 backdrop-blur-xl absolute top-[65px] left-0 right-0 shadow-ambient border-b border-[#fff2d8]">
+          <nav className="flex flex-col px-4 py-6 gap-4 font-headline italic text-xl">
             <Link
               to="/"
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-primary/10 text-primary' : 'text-[#78614A] hover:text-[#1C1008] hover:bg-[#1C1008]/5'}`}
+              className={`px-4 py-2 ${location.pathname === '/' ? 'text-[#9f402d] font-bold' : 'text-[#5e5e63]'}`}
             >
-              Home
+              Gallery
             </Link>
             <Link
               to="/library"
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/library' ? 'bg-primary/10 text-primary' : 'text-[#78614A] hover:text-[#1C1008] hover:bg-[#1C1008]/5'}`}
+              className={`px-4 py-2 ${location.pathname === '/library' ? 'text-[#9f402d] font-bold' : 'text-[#5e5e63]'}`}
             >
-              Library
+              Collections
             </Link>
             <button
-              onClick={() => { setIsTrackModalOpen(true); setIsMobileMenuOpen(false); }}
-              className="px-4 py-3 rounded-lg text-sm font-medium text-[#78614A] hover:text-[#1C1008] hover:bg-[#1C1008]/5 transition-colors text-left"
+              onClick={() => {
+                setIsTrackModalOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className="px-4 py-2 text-[#5e5e63] text-left"
             >
               Track Order
             </button>
-            <div className="pt-2 mt-1 border-t border-background-border">
+            <div className="px-4 pt-4 mt-2 border-t border-[#fff2d8]">
               <Link
                 to="/create"
-                className="flex items-center justify-center rounded-lg h-11 px-6 bg-primary hover:bg-primary-dark transition-all text-white text-sm font-bold shadow-lg tracking-wide"
+                className="block w-full text-center bg-obsidian text-primary px-8 py-4 font-label not-italic uppercase tracking-widest text-xs rounded-full shadow-obsidian"
               >
-                <span className="material-symbols-outlined mr-2 text-base">mic</span>
-                Create Song
+                Score Your Story
               </Link>
             </div>
           </nav>
         </div>
       )}
 
-      <TrackOrderModal
-        isOpen={isTrackModalOpen}
-        onClose={() => setIsTrackModalOpen(false)}
-      />
+      <TrackOrderModal isOpen={isTrackModalOpen} onClose={() => setIsTrackModalOpen(false)} />
     </header>
   );
 };

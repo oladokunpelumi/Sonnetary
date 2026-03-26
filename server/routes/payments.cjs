@@ -18,6 +18,8 @@ router.post('/create-checkout-session', async (req, res) => {
             specialQualities,
             favoriteMemories,
             specialMessage,
+            amount,
+            fastDelivery,
         } = req.body;
 
         const resolvedEmail = email || customerEmail || 'guest@yourgbedu.com';
@@ -31,10 +33,10 @@ router.post('/create-checkout-session', async (req, res) => {
                     price_data: {
                         currency: 'usd',
                         product_data: {
-                            name: 'Custom Song — YourGbedu',
+                            name: 'Custom Song — YourGbedu' + (fastDelivery ? ' (24-Hour Fast Delivery)' : ''),
                             description: `A personalised ${genre || 'custom'} song crafted just for your ${recipientType || 'loved one'}.`,
                         },
-                        unit_amount: 2500, // $25.00 USD
+                        unit_amount: amount || 2500, // Dynamic or fallback to $25.00 USD
                     },
                     quantity: 1,
                 },
@@ -52,6 +54,7 @@ router.post('/create-checkout-session', async (req, res) => {
                 specialQualities: (specialQualities || '').substring(0, 500),
                 favoriteMemories: (favoriteMemories || '').substring(0, 500),
                 specialMessage: (specialMessage || '').substring(0, 500),
+                fastDelivery: fastDelivery ? 'true' : 'false',
             },
         });
 

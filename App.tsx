@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import PersistentPlayer from './components/PersistentPlayer';
 import Home from './pages/Home';
 import CreateSong from './pages/CreateSong';
@@ -52,39 +53,43 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Fetch songs from API
   useEffect(() => {
     fetch('/api/songs')
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: Song[]) => {
         setSongs(data);
         if (data.length > 0 && !activeSong) {
           setActiveSong(data[0]);
         }
       })
-      .catch(err => console.error('Failed to fetch songs:', err));
+      .catch((err) => console.error('Failed to fetch songs:', err));
   }, []);
 
+  const playSong = useCallback(
+    (song: Song) => {
+      const audio = audioRef.current;
+      if (!audio) return;
 
-
-  const playSong = useCallback((song: Song) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (activeSong?.id !== song.id) {
-      setActiveSong(song);
-      setIsPreviewLocked(false); // reset lock when changing song
-      if (song.audioUrl) {
-        audio.src = song.audioUrl;
-        audio.load();
-      } else {
-        audio.src = '';
-        setIsPlaying(false);
-        return;
+      if (activeSong?.id !== song.id) {
+        setActiveSong(song);
+        setIsPreviewLocked(false); // reset lock when changing song
+        if (song.audioUrl) {
+          audio.src = song.audioUrl;
+          audio.load();
+        } else {
+          audio.src = '';
+          setIsPlaying(false);
+          return;
+        }
       }
-    }
 
-    if (song.audioUrl) {
-      audio.play().then(() => setIsPlaying(true)).catch(console.error);
-    }
-  }, [activeSong]);
+      if (song.audioUrl) {
+        audio
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(console.error);
+      }
+    },
+    [activeSong]
+  );
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -101,7 +106,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           audio.load();
         }
       }
-      audio.play().then(() => setIsPlaying(true)).catch(console.error);
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(console.error);
     }
   }, [isPlaying, activeSong]);
 
@@ -117,14 +125,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const skipNext = useCallback(() => {
     if (!activeSong || songs.length === 0) return;
-    const idx = songs.findIndex(s => s.id === activeSong.id);
+    const idx = songs.findIndex((s) => s.id === activeSong.id);
     const nextIdx = (idx + 1) % songs.length;
     playSong(songs[nextIdx]);
   }, [activeSong, songs, playSong]);
 
   const skipPrev = useCallback(() => {
     if (!activeSong || songs.length === 0) return;
-    const idx = songs.findIndex(s => s.id === activeSong.id);
+    const idx = songs.findIndex((s) => s.id === activeSong.id);
     const prevIdx = idx === 0 ? songs.length - 1 : idx - 1;
     playSong(songs[prevIdx]);
   }, [activeSong, songs, playSong]);
@@ -153,7 +161,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setIsPlaying(false);
       // Auto-advance to next song
       if (activeSong && songs.length > 0) {
-        const idx = songs.findIndex(s => s.id === activeSong.id);
+        const idx = songs.findIndex((s) => s.id === activeSong.id);
         if (idx < songs.length - 1) {
           playSong(songs[idx + 1]);
         }
@@ -192,15 +200,16 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <PlayerContext.Provider value={contextValue}>
       <div className="min-h-screen flex flex-col pb-20">
         <Header />
-        <main className="pt-16 flex-grow">
-          {children}
-        </main>
+        <main className="pt-16 flex-grow">{children}</main>
+        <Footer />
         <PersistentPlayer />
 
         {/* Background Texture Overlay */}
         <div
           className="fixed inset-0 pointer-events-none opacity-[0.03] z-[1000]"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
         />
       </div>
     </PlayerContext.Provider>

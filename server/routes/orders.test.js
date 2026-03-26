@@ -10,10 +10,10 @@ vi.stubEnv('NODE_ENV', 'test');
 
 // Stub the DB module with an in-memory SQLite instance
 vi.mock('../db.cjs', async () => {
-    const Database = (await import('better-sqlite3')).default;
-    const db = new Database(':memory:');
-    db.pragma('journal_mode = WAL');
-    db.exec(`
+  const Database = (await import('better-sqlite3')).default;
+  const db = new Database(':memory:');
+  db.pragma('journal_mode = WAL');
+  db.exec(`
         CREATE TABLE IF NOT EXISTS orders (
             id TEXT PRIMARY KEY,
             song_title TEXT,
@@ -38,7 +38,7 @@ vi.mock('../db.cjs', async () => {
             special_message TEXT
         );
     `);
-    return { default: db };
+  return { default: db };
 });
 
 import express from 'express';
@@ -50,95 +50,104 @@ app.use('/api/orders', ordersRouter);
 
 // Simple fetch helper for tests
 async function req(method, path, body) {
-    const { default: supertest } = await import('supertest');
-    const r = supertest(app)[method.toLowerCase()](path);
-    if (body) r.send(body).set('Content-Type', 'application/json');
-    return r;
+  const { default: supertest } = await import('supertest');
+  const r = supertest(app)[method.toLowerCase()](path);
+  if (body) r.send(body).set('Content-Type', 'application/json');
+  return r;
 }
 
 describe('POST /api/orders', () => {
-    it('creates a new order', async () => {
-        const { default: supertest } = await import('supertest');
-        const res = await supertest(app)
-            .post('/api/orders')
-            .send({ songTitle: 'Test Song', genre: 'Afro-Beats', paystackReference: 'ref_001', customerEmail: 'test@example.com' })
-            .set('Content-Type', 'application/json');
+  it('creates a new order', async () => {
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(app)
+      .post('/api/orders')
+      .send({
+        songTitle: 'Test Song',
+        genre: 'Afro-Beats',
+        paystackReference: 'ref_001',
+        customerEmail: 'test@example.com',
+      })
+      .set('Content-Type', 'application/json');
 
-        expect(res.status).toBe(201);
-        expect(res.body.id).toBeTruthy();
-        expect(res.body.songTitle).toBe('Test Song');
-    });
+    expect(res.status).toBe(201);
+    expect(res.body.id).toBeTruthy();
+    expect(res.body.songTitle).toBe('Test Song');
+  });
 
-    it('returns existing order on duplicate paystackReference (idempotency)', async () => {
-        const { default: supertest } = await import('supertest');
+  it('returns existing order on duplicate paystackReference (idempotency)', async () => {
+    const { default: supertest } = await import('supertest');
 
-        const first = await supertest(app)
-            .post('/api/orders')
-            .send({ genre: 'Gospel', paystackReference: 'ref_idem_001' })
-            .set('Content-Type', 'application/json');
+    const first = await supertest(app)
+      .post('/api/orders')
+      .send({ genre: 'Gospel', paystackReference: 'ref_idem_001' })
+      .set('Content-Type', 'application/json');
 
-        const second = await supertest(app)
-            .post('/api/orders')
-            .send({ genre: 'Gospel', paystackReference: 'ref_idem_001' })
-            .set('Content-Type', 'application/json');
+    const second = await supertest(app)
+      .post('/api/orders')
+      .send({ genre: 'Gospel', paystackReference: 'ref_idem_001' })
+      .set('Content-Type', 'application/json');
 
-        expect(first.status).toBe(201);
-        expect(second.status).toBe(200); // returns existing
-        expect(first.body.id).toBe(second.body.id);
-    });
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(200); // returns existing
+    expect(first.body.id).toBe(second.body.id);
+  });
 
-    it('rejects invalid email', async () => {
-        const { default: supertest } = await import('supertest');
-        const res = await supertest(app)
-            .post('/api/orders')
-            .send({ customerEmail: 'not-an-email' })
-            .set('Content-Type', 'application/json');
+  it('rejects invalid email', async () => {
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(app)
+      .post('/api/orders')
+      .send({ customerEmail: 'not-an-email' })
+      .set('Content-Type', 'application/json');
 
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBeTruthy();
-    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
 });
 
 describe('GET /api/orders/:id', () => {
-    it('returns 404 for unknown order', async () => {
-        const { default: supertest } = await import('supertest');
-        const res = await supertest(app).get('/api/orders/non-existent-id');
-        expect(res.status).toBe(404);
-    });
+  it('returns 404 for unknown order', async () => {
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(app).get('/api/orders/non-existent-id');
+    expect(res.status).toBe(404);
+  });
 
-    it('returns an existing order', async () => {
-        const { default: supertest } = await import('supertest');
+  it('returns an existing order', async () => {
+    const { default: supertest } = await import('supertest');
 
-        const created = await supertest(app)
-            .post('/api/orders')
-            .send({ songTitle: 'My Song', genre: 'Afro-Jazz', paystackReference: 'ref_get_001' })
-            .set('Content-Type', 'application/json');
+    const created = await supertest(app)
+      .post('/api/orders')
+      .send({ songTitle: 'My Song', genre: 'Afro-Jazz', paystackReference: 'ref_get_001' })
+      .set('Content-Type', 'application/json');
 
-        const fetched = await supertest(app).get(`/api/orders/${created.body.id}`);
-        expect(fetched.status).toBe(200);
-        expect(fetched.body.id).toBe(created.body.id);
-        expect(fetched.body.genre).toBe('Afro-Jazz');
-    });
+    const fetched = await supertest(app).get(`/api/orders/${created.body.id}`);
+    expect(fetched.status).toBe(200);
+    expect(fetched.body.id).toBe(created.body.id);
+    expect(fetched.body.genre).toBe('Afro-Jazz');
+  });
 });
 
 describe('GET /api/orders/track', () => {
-    it('returns 400 without an email', async () => {
-        const { default: supertest } = await import('supertest');
-        const res = await supertest(app).get('/api/orders/track');
-        expect(res.status).toBe(400);
-    });
+  it('returns 400 without an email', async () => {
+    const { default: supertest } = await import('supertest');
+    const res = await supertest(app).get('/api/orders/track');
+    expect(res.status).toBe(400);
+  });
 
-    it('returns orders for a customer email', async () => {
-        const { default: supertest } = await import('supertest');
+  it('returns orders for a customer email', async () => {
+    const { default: supertest } = await import('supertest');
 
-        await supertest(app)
-            .post('/api/orders')
-            .send({ genre: 'Afro-R&B', paystackReference: 'ref_track_001', customerEmail: 'customer@test.com' })
-            .set('Content-Type', 'application/json');
+    await supertest(app)
+      .post('/api/orders')
+      .send({
+        genre: 'Afro-R&B',
+        paystackReference: 'ref_track_001',
+        customerEmail: 'customer@test.com',
+      })
+      .set('Content-Type', 'application/json');
 
-        const res = await supertest(app).get('/api/orders/track?email=customer@test.com');
-        expect(res.status).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
-        expect(res.body.length).toBeGreaterThan(0);
-    });
+    const res = await supertest(app).get('/api/orders/track?email=customer@test.com');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThan(0);
+  });
 });

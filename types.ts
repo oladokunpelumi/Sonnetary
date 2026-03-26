@@ -1,4 +1,3 @@
-
 export type Genre =
   | 'Afro-Beats'
   | 'Afro-Jazz'
@@ -59,4 +58,3 @@ export interface OrderData {
   favoriteMemories?: string | null;
   specialMessage?: string | null;
 }
-
