@@ -27,8 +27,8 @@ const Home: React.FC = () => {
   return (
     <div className="flex flex-col">
       {/* ── Hero Section: Cinematic Royal Gold ─────────────────────────────── */}
-      <section className="relative min-h-[95vh] flex items-center px-4 sm:px-6 lg:px-12 pt-24 overflow-hidden bg-gradient-to-br from-[#D4AF37] via-[#e2c15a] to-[#D4AF37]">
-        <div className="max-w-[1920px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 z-10 pt-10">
+      <section className="relative md:min-h-[95vh] flex items-start md:items-center px-4 sm:px-6 lg:px-12 pt-28 pb-16 md:pt-24 md:pb-0 overflow-hidden bg-gradient-to-br from-[#D4AF37] via-[#e2c15a] to-[#D4AF37]">
+        <div className="max-w-[1920px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 z-10 md:pt-10">
           <div className="col-span-1 md:col-span-7 flex flex-col justify-center text-center md:text-left z-20">
             <span className="font-label uppercase tracking-[0.2em] text-sm md:text-base text-obsidian font-semibold mb-6 block">
               #1 Custom Song Platform Across all Genres

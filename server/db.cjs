@@ -77,7 +77,7 @@ if (songCount.count === 0) {
   const seedSongs = [
     {
       title: 'Like Roses (You Are Your Name)',
-      genre: 'Afro-R&B',
+      genre: 'R&B',
       duration: '4:03',
       description: '"We met at a coffee shop on a rainy Tuesday. I spilled my latte, he laughed, and now every moment feels like roses blooming."',
       cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCn8xOssl2ppe5twvI7LYDeLGPnmv-mo9yVKKzEBlA6LDDxKmJmEZ4iOXN1t9pT2eiVrYMzuuUqhoHRRyrHnVkB4fuBScfeRLGc__QeeJKM40nGNE0vBX1OaYrCxt-0Y_BalNBilpXI8jzgTrw3FVN9LUvUsAZg7IeBVXn5JKh2S7RS4dJYv6V0UJtqqhyY8PIR35JSwhd1Gdzm3vcpCaNrncnlxrt7QVGUc7N7axoppfVPDUPVHokSBBRd5cv3Nmb--XvVB7Tbkg',
@@ -94,7 +94,7 @@ if (songCount.count === 0) {
       cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAvKxuOtg_3IVmm0l8rcnPdVJtKIB_iOtBYdQdMm6nAYydMOsmIgiQlkbKvqIGiUjpvMotWmPV1rjbepTXfuVlEnepVvxv_dNkUubkUik5OZS2QKArjhKO0nav02SQm90Tk8rTYfZ-PFsaBa8-7CNDLdMDNlyFXKvbjg5Rv00_OrMmS6nCMKnlNZFnXCrYO1QpQUSrVfMW_AO72eUtnnJV0ihDT08TkpolfbndIJxKz-KLWNGNiv7Xqb-31b5ely4qUhLJg0GozHw',
       artist: 'The Family',
       tags: JSON.stringify(['Birthday', 'Celebration']),
-      audio_url: '/musics/Mimi (Give Me Wealth)".mp3',
+      audio_url: '/musics/Mimi (Give Me Wealth).mp3',
       story: 'A birthday celebration song full of Afrobeats energy.'
     },
     {
@@ -118,6 +118,17 @@ if (songCount.count === 0) {
       tags: JSON.stringify(['Valentine', 'Romance']),
       audio_url: '/musics/Valentine.mp3',
       story: 'A perfectly crafted pop electronic song dedicated to an amazing valentine.'
+    },
+    {
+      title: 'Anniversary',
+      genre: 'Afro-Beats',
+      duration: '3:45',
+      description: '"A celebration of love and togetherness — crafted for a special couple whose bond only grows stronger with every passing year."',
+      cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCn8xOssl2ppe5twvI7LYDeLGPnmv-mo9yVKKzEBlA6LDDxKmJmEZ4iOXN1t9pT2eiVrYMzuuUqhoHRRyrHnVkB4fuBScfeRLGc__QeeJKM40nGNE0vBX1OaYrCxt-0Y_BalNBilpXI8jzgTrw3FVN9LUvUsAZg7IeBVXn5JKh2S7RS4dJYv6V0UJtqqhyY8PIR35JSwhd1Gdzm3vcpCaNrncnlxrt7QVGUc7N7axoppfVPDUPVHokSBBRd5cv3Nmb--XvVB7Tbkg',
+      artist: 'A Special Couple',
+      tags: JSON.stringify(['Anniversary', 'Love', 'Celebration']),
+      audio_url: '/musics/Anniversary.mp3',
+      story: 'An Afro-Beats track crafted to celebrate a couple\'s love and lasting bond.'
     }
   ];
 
@@ -130,5 +141,42 @@ if (songCount.count === 0) {
   insertMany(seedSongs);
   console.log('✅ Seeded 4 songs into database');
 }
+
+// ── Live data migrations (run on every startup to fix existing databases) ──
+// Fix Mimi typo in audio URL
+try {
+  db.prepare(
+    "UPDATE songs SET audio_url = '/musics/Mimi (Give Me Wealth).mp3' WHERE title LIKE 'Mimi%' AND audio_url LIKE '%\"%'"
+  ).run();
+} catch (e) {}
+
+// Fix Like Roses genre
+try {
+  db.prepare(
+    "UPDATE songs SET genre = 'R&B' WHERE title = 'Like Roses (You Are Your Name)' AND genre = 'Afro-R&B'"
+  ).run();
+} catch (e) {}
+
+// Add Anniversary if it doesn't exist yet
+try {
+  const exists = db.prepare("SELECT COUNT(*) as count FROM songs WHERE title = 'Anniversary'").get();
+  if (exists.count === 0) {
+    db.prepare(`
+      INSERT INTO songs (title, genre, duration, description, cover_url, artist, tags, audio_url, story)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'Anniversary',
+      'Afro-Beats',
+      '3:45',
+      '"A celebration of love and togetherness — crafted for a special couple whose bond only grows stronger with every passing year."',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCn8xOssl2ppe5twvI7LYDeLGPnmv-mo9yVKKzEBlA6LDDxKmJmEZ4iOXN1t9pT2eiVrYMzuuUqhoHRRyrHnVkB4fuBScfeRLGc__QeeJKM40nGNE0vBX1OaYrCxt-0Y_BalNBilpXI8jzgTrw3FVN9LUvUsAZg7IeBVXn5JKh2S7RS4dJYv6V0UJtqqhyY8PIR35JSwhd1Gdzm3vcpCaNrncnlxrt7QVGUc7N7axoppfVPDUPVHokSBBRd5cv3Nmb--XvVB7Tbkg',
+      'A Special Couple',
+      JSON.stringify(['Anniversary', 'Love', 'Celebration']),
+      '/musics/Anniversary.mp3',
+      "An Afro-Beats track crafted to celebrate a couple's love and lasting bond."
+    );
+    console.log('✅ Added Anniversary to catalogue');
+  }
+} catch (e) {}
 
 module.exports = db;

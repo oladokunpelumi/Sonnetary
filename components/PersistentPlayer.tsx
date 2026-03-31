@@ -31,7 +31,19 @@ const PersistentPlayer: React.FC = () => {
     });
   }, []);
 
-  if (!activeSong) return null;
+  // No active song: show floating CTA on all screens
+  if (!activeSong) {
+    return (
+      <div className="fixed bottom-6 left-0 right-0 z-[100] flex justify-center pointer-events-none">
+        <Link
+          to="/create"
+          className="pointer-events-auto bg-obsidian text-primary px-10 py-4 font-label uppercase tracking-widest text-xs rounded-full shadow-[0_8px_32px_rgba(36,26,0,0.35)] hover:scale-105 transition-transform duration-300"
+        >
+          Create Your Song
+        </Link>
+      </div>
+    );
+  }
 
   const progressFraction = duration > 0 ? currentTime / duration : 0;
   const activeBarIndex = Math.floor(progressFraction * waveformBars.length);
@@ -40,7 +52,7 @@ const PersistentPlayer: React.FC = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[100] glass shadow-ambient h-20 px-4 md:px-8 flex items-center justify-between transition-all">
       {/* Track Info */}
-      <div className="flex items-center gap-4 w-1/4 min-w-[200px]">
+      <div className="flex items-center gap-4 w-1/4 min-w-[140px] md:min-w-[200px]">
         <div className="h-12 w-12 rounded-md bg-surface-container-low relative overflow-hidden group shrink-0">
           <div
             className="absolute inset-0 bg-cover bg-center transition-transform group-hover:scale-110"
@@ -95,7 +107,7 @@ const PersistentPlayer: React.FC = () => {
                 to="/create"
                 className="ml-auto text-[10px] font-bold btn-secondary-warm text-white px-2 py-0.5 rounded hover:opacity-90 transition-colors uppercase tracking-wider font-ui"
               >
-                Get Yours
+                Create Yours
               </Link>
             </div>
           ) : (
@@ -122,7 +134,7 @@ const PersistentPlayer: React.FC = () => {
         </div>
       </div>
 
-      {/* Volume & Actions */}
+      {/* Volume & CTA — desktop only */}
       <div className="hidden md:flex items-center justify-end gap-6 w-1/4 min-w-[200px]">
         <div className="flex items-center gap-2 group">
           <span className="material-symbols-outlined text-[#78614A] text-lg">
@@ -142,7 +154,7 @@ const PersistentPlayer: React.FC = () => {
           to="/create"
           className="text-xs font-bold text-secondary rounded-md px-3 py-1.5 bg-surface-container-highest hover:bg-secondary hover:text-white transition-colors uppercase tracking-wider font-ui"
         >
-          Get Yours
+          Create Your Song
         </Link>
       </div>
     </div>
