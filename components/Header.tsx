@@ -31,7 +31,7 @@ const Header: React.FC = () => {
               Gallery
             </Link>
             <Link to="/library" className={navLinkClass('/library')}>
-              Collections
+              Our Catalogue
             </Link>
             <button
               onClick={() => setIsTrackModalOpen(true)}
@@ -47,9 +47,17 @@ const Header: React.FC = () => {
               to="/create"
               className="bg-obsidian text-primary px-8 py-2.5 font-label uppercase tracking-widest text-[10px] rounded-full hover:scale-105 transition-transform duration-300 shadow-obsidian"
             >
-              Score Your Story
+              Create Your Song
             </Link>
           </div>
+
+          {/* Mobile CTA — always visible, no dropdown needed */}
+          <Link
+            to="/create"
+            className="md:hidden bg-obsidian text-primary px-5 py-2 font-label uppercase tracking-widest text-[9px] rounded-full hover:scale-105 transition-transform duration-300"
+          >
+            Create Your Song
+          </Link>
 
           {/* Mobile menu toggle */}
           <div className="flex items-center md:hidden">
@@ -82,7 +90,7 @@ const Header: React.FC = () => {
               to="/library"
               className={`px-4 py-2 ${location.pathname === '/library' ? 'text-[#9f402d] font-bold' : 'text-[#5e5e63]'}`}
             >
-              Collections
+              Our Catalogue
             </Link>
             <button
               onClick={() => {
@@ -98,7 +106,7 @@ const Header: React.FC = () => {
                 to="/create"
                 className="block w-full text-center bg-obsidian text-primary px-8 py-4 font-label not-italic uppercase tracking-widest text-xs rounded-full shadow-obsidian"
               >
-                Score Your Story
+                Create Your Song
               </Link>
             </div>
           </nav>

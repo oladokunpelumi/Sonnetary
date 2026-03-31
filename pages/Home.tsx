@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayer } from '../App';
 import FAQ from '../components/FAQ';
@@ -6,12 +6,33 @@ import FAQ from '../components/FAQ';
 const Home: React.FC = () => {
   const { songs, activeSong, playSong, togglePlay, isPlaying } = usePlayer();
 
+  // Scroll-reveal: stagger curator cards as they enter the viewport
+  const revealRefs = useRef<(HTMLDivElement | null)[]>([]);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    revealRefs.current.forEach((el) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="flex flex-col">
       {/* ── Hero Section: Cinematic Royal Gold ─────────────────────────────── */}
       <section className="relative min-h-[95vh] flex items-center px-4 sm:px-6 lg:px-12 pt-24 overflow-hidden bg-gradient-to-br from-[#D4AF37] via-[#e2c15a] to-[#D4AF37]">
         <div className="max-w-[1920px] mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-8 z-10 pt-10">
           <div className="col-span-1 md:col-span-7 flex flex-col justify-center text-center md:text-left z-20">
+            <span className="font-label uppercase tracking-[0.2em] text-sm md:text-base text-obsidian font-semibold mb-6 block">
+              #1 Custom Song Platform Across all Genres
+            </span>
             <h1 className="font-headline italic text-6xl md:text-8xl lg:text-[10rem] text-obsidian leading-[0.9] mb-8 lg:-ml-2">
               Hear what <br />
               your heart <br />
@@ -26,7 +47,7 @@ const Home: React.FC = () => {
                 to="/create"
                 className="inline-block bg-obsidian text-primary px-12 py-5 font-label uppercase tracking-widest text-sm rounded-full hover:scale-105 transition-all duration-500 shadow-obsidian"
               >
-                Score Your Story
+                Create Your Song
               </Link>
             </div>
           </div>
@@ -47,56 +68,64 @@ const Home: React.FC = () => {
       </section>
 
       {/* ── Features Section: The Digital Curator ────────────────────────────── */}
-      <section className="py-32 sm:py-40 px-6 sm:px-12 bg-surface">
+      <section className="py-20 sm:py-28 px-6 sm:px-12 bg-surface">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-24 text-center md:text-left">
-            <span className="font-label text-obsidian uppercase tracking-[0.4em] text-xs font-semibold">
-              The Digital Curator
-            </span>
-            <h2 className="font-headline italic text-5xl md:text-7xl mt-6 max-w-2xl text-obsidian leading-[0.95]">
-              Set the Royal Vibe
+          <div className="mb-12 text-center md:text-left">
+            <h2 className="font-headline italic text-4xl md:text-5xl max-w-2xl text-obsidian leading-[0.95]">
+              How YourGbedu Works
             </h2>
           </div>
 
-          {/* Staggered process cards mapping old process to new aesthetic */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20">
+          {/* Staggered process cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 lg:gap-12">
             {[
               {
                 id: '01',
-                title: 'The Interview',
-                desc: 'Share your story through our curated intake form or chat with a producer. We capture your frequency.',
-                delay: '0',
+                title: 'Fill out the form',
+                desc: 'Pick your genre & fill in your story. Tell us everything — the more detail, the more personal the song.',
               },
               {
                 id: '02',
-                title: 'The Session',
-                desc: 'Professional artists compose, record, and mix your custom track in the studio with royal precision.',
-                delay: '100',
+                title: 'We Create Your Song',
+                desc: 'Our team crafts a custom track just for you — composed, recorded, and mixed with royal precision.',
               },
               {
                 id: '03',
-                title: 'A Legacy in Sound',
-                desc: 'Receive your mastered song, a digital vinyl curated for those who truly matter.',
-                delay: '200',
+                title: 'Delivered in 48 Hours via Email',
+                desc: 'Your mastered song lands in your inbox, ready to share with the people who matter most.',
               },
             ].map((step, idx) => (
               <div
                 key={step.id}
-                className={`flex flex-col space-y-8 group ${idx === 1 ? 'md:mt-24' : ''}`}
+                ref={(el) => { revealRefs.current[idx] = el; }}
+                style={{ transitionDelay: `${idx * 120}ms` }}
+                className={`reveal group ${idx === 1 ? 'md:mt-10' : ''}`}
               >
-                <div className="aspect-[4/5] relative overflow-hidden bg-obsidian/5 rounded-2xl shadow-lg ring-1 ring-obsidian/10 flex items-center justify-center p-8 group-hover:-translate-y-2 transition-transform duration-700">
-                  <h4 className="absolute top-4 right-6 font-headline italic text-6xl text-obsidian/10 group-hover:text-obsidian/20 transition-colors uppercase">
-                    {step.id}
-                  </h4>
-                  <div className="w-full h-full rounded-full border border-obsidian/10 animate-[spin_60s_linear_infinite] group-hover:border-obsidian/30 transition-colors"></div>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                    <h3 className="font-headline text-3xl md:text-4xl mb-4 italic text-obsidian group-hover:scale-105 transition-transform">
-                      {step.title}
-                    </h3>
+                {/* Mobile: compact horizontal card */}
+                <div className="flex md:hidden items-center gap-4 bg-obsidian/5 rounded-2xl ring-1 ring-obsidian/10 px-5 py-4 group-hover:bg-obsidian/8 transition-colors">
+                  <span className="font-headline italic text-4xl text-obsidian/20 leading-none w-10 flex-shrink-0">{step.id}</span>
+                  <div>
+                    <h3 className="font-headline italic text-lg text-obsidian mb-1">{step.title}</h3>
+                    <p className="font-body text-obsidian/70 text-sm leading-relaxed">{step.desc}</p>
                   </div>
                 </div>
-                <div className="max-w-sm px-2">
-                  <p className="font-body text-obsidian/80 leading-relaxed text-lg">{step.desc}</p>
+
+                {/* Desktop: square card with spinning ring */}
+                <div className="hidden md:flex flex-col space-y-5">
+                  <div className="aspect-square relative overflow-hidden bg-obsidian/5 rounded-2xl shadow-md ring-1 ring-obsidian/10 flex items-center justify-center p-6 group-hover:-translate-y-2 transition-transform duration-700">
+                    <h4 className="absolute top-3 right-5 font-headline italic text-5xl text-obsidian/10 group-hover:text-obsidian/20 transition-colors uppercase">
+                      {step.id}
+                    </h4>
+                    <div className="w-3/4 h-3/4 rounded-full border border-obsidian/10 animate-[spin_60s_linear_infinite] group-hover:border-obsidian/30 transition-colors"></div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                      <h3 className="font-headline text-2xl md:text-3xl italic text-obsidian group-hover:scale-105 transition-transform">
+                        {step.title}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="max-w-sm px-1">
+                    <p className="font-body text-obsidian/80 leading-relaxed">{step.desc}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -108,10 +137,7 @@ const Home: React.FC = () => {
       <section className="py-32 sm:py-40 bg-obsidian text-primary overflow-hidden relative">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 relative z-10">
           <div className="text-center mb-16">
-            <span className="font-label text-primary/60 uppercase tracking-[0.2em] text-xs mb-6 block">
-              Tuning to your frequency...
-            </span>
-            <h2 className="font-headline italic text-5xl md:text-7xl mb-12">The Pulse of Now</h2>
+            <h2 className="font-headline italic text-5xl md:text-7xl mb-12">Check Out Our Catalogue</h2>
           </div>
 
           {/* Fluid Sound Visualization embedded centrally */}
@@ -213,6 +239,53 @@ const Home: React.FC = () => {
         ></div>
       </section>
 
+      {/* ── A Song for Everyone ─────────────────────────────────────────────── */}
+      <section className="py-32 sm:py-40 px-6 sm:px-12 bg-obsidian">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16 text-center">
+            <h2 className="font-headline italic text-5xl md:text-7xl text-primary leading-[0.95] mb-4">
+              A Song for Everyone
+            </h2>
+            <p className="font-body text-primary/60 text-lg max-w-xl mx-auto">
+              Pick who it's for and we'll craft something they'll never forget.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {[
+              { label: 'For Your Partner',   icon: 'favorite',         gradient: 'from-[#3d2e00] to-[#241a00]' },
+              { label: 'For Your Children',  icon: 'child_care',       gradient: 'from-[#2a1f00] to-[#1a1400]' },
+              { label: 'For Your Father',    icon: 'man',              gradient: 'from-[#332500] to-[#241a00]' },
+              { label: 'For Your Mother',    icon: 'woman',            gradient: 'from-[#3a2800] to-[#241a00]' },
+              { label: 'For Your Sibling',   icon: 'people',           gradient: 'from-[#2e2200] to-[#1a1400]' },
+              { label: 'For Your Friend',    icon: 'group',            gradient: 'from-[#3d2e00] to-[#241a00]' },
+              { label: 'For Yourself',       icon: 'self_improvement', gradient: 'from-[#241a00] to-[#0d0a00]' },
+              { label: 'For Anyone Special', icon: 'star',             gradient: 'from-[#2a1f00] to-[#241a00]' },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                to="/create"
+                className={`group relative aspect-square rounded-2xl bg-gradient-to-br ${item.gradient} ring-1 ring-primary/10 overflow-hidden flex flex-col justify-between p-5 hover:ring-primary/30 hover:scale-[1.03] transition-all duration-500`}
+              >
+                {/* Icon centered */}
+                <div className="flex-1 flex items-center justify-center">
+                  <span
+                    className="material-symbols-outlined text-primary/40 group-hover:text-primary/70 transition-colors duration-500"
+                    style={{ fontSize: '72px', fontVariationSettings: "'FILL' 1" }}
+                  >
+                    {item.icon}
+                  </span>
+                </div>
+                {/* Label bottom-left */}
+                <p className="font-headline italic text-lg md:text-xl text-primary leading-tight">
+                  {item.label}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section (Adapting to Royal Gold) */}
       <div className="bg-surface">
         <FAQ />
@@ -228,7 +301,7 @@ const Home: React.FC = () => {
             to="/create"
             className="bg-obsidian text-primary px-16 py-6 font-label uppercase tracking-[0.2em] text-sm rounded-full shadow-[0_20px_50px_rgba(36,26,0,0.2)] hover:shadow-[0_30px_60px_rgba(36,26,0,0.4)] hover:-translate-y-2 transition-all duration-700"
           >
-            Begin Composing
+            Create Your Song
           </Link>
         </div>
       </section>

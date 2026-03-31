@@ -100,6 +100,44 @@ input[type='range']::-webkit-slider-runnable-track {
   line-height: 1.6;
 }
 
+/* ── Brand selection color ───────────────────────────────────────────────── */
+::selection {
+  background: #241a00;
+  color: #D4AF37;
+}
+
+/* ── Focus ring (gold, always visible) ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #D4AF37;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Scroll-reveal utility ───────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Reduced-motion overrides ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ── CTA variants ────────────────────────────────────────────────────────── */
 .btn-gradient {
   background: linear-gradient(135deg, #241a00 0%, #1a1400 100%);
