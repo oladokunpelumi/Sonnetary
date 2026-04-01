@@ -98,17 +98,6 @@ if (songCount.count === 0) {
       story: 'A birthday celebration song full of Afrobeats energy.'
     },
     {
-      title: 'Baby Steps',
-      genre: 'Gospel',
-      duration: '2:58',
-      description: '"Welcoming our first child was magic. We wanted a song that we could hum to her every night as she drifts off to sleep."',
-      cover_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbJHdoLF0pZDcWvJt_PYJ2omO4zgo2pXdiE-vRWknOLG7l8xuEupdb0lbuiu5D963dwT0dvFR8hcoScud5gLUvctPAR5csY0_2My3OQzi4v1zJ06tXK14IWUke0Y0QxExxpa3qEUHKoPTy_tlhTuj31_h732NM8VHCvSQjAo1C4bPCLdaFipVOwUbp-Xsxznwfhx4dfqixZfuSda89J64oBpG7Di6vr9hmY6O_a0o9P5sNi6aSLRRI3zkhulZ0qxCEh9vlh_szUg',
-      artist: 'New Parents',
-      tags: JSON.stringify(['Newborn', 'Magic']),
-      audio_url: null,
-      story: 'A gentle lullaby for a newborn child.'
-    },
-    {
       title: 'Valentine',
       genre: 'Afro-R&B',
       duration: '2:30',
@@ -143,6 +132,10 @@ if (songCount.count === 0) {
 }
 
 // ── Live data migrations (run on every startup to fix existing databases) ──
+// Remove Baby Steps placeholder
+try {
+  db.prepare("DELETE FROM songs WHERE title = 'Baby Steps'").run();
+} catch (e) {}
 // Fix Mimi typo in audio URL
 try {
   db.prepare(
