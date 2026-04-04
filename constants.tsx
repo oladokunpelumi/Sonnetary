@@ -1,12 +1,16 @@
 import { Genre, Mood } from './types';
 
 export const GENRES: { name: Genre; desc: string; icon: string }[] = [
-  { name: 'Afro-Beats', desc: 'Vibrant & Rhythmic', icon: 'music_note' },
-  { name: 'Afro-Jazz', desc: 'Smooth & Soulful', icon: 'nightlife' },
-  { name: 'Afro-R&B', desc: 'Romantic & Groovy', icon: 'favorite' },
-  { name: 'Afro-Reggae', desc: 'Island Vibes', icon: 'queue_music' },
-  { name: 'Afro-House', desc: 'Energetic & Driving', icon: 'speaker' },
-  { name: 'Gospel', desc: 'Uplifting & Spiritual', icon: 'volunteer_activism' },
+  { name: 'Afro-Beats',  desc: 'Vibrant & Rhythmic',   icon: 'music_note' },
+  { name: 'Afro-R&B',   desc: 'Romantic & Groovy',     icon: 'favorite' },
+  { name: 'Afro-House',  desc: 'Energetic & Electric',  icon: 'speaker' },
+  { name: 'Afro-Reggae', desc: 'Island Vibes',           icon: 'queue_music' },
+  { name: 'Gospel',      desc: 'Uplifting & Spiritual',  icon: 'volunteer_activism' },
+  { name: 'R&B',         desc: 'Smooth & Soulful',       icon: 'radio' },
+  { name: 'Hip-Hop',     desc: 'Bold & Rhythmic',        icon: 'mic' },
+  { name: 'Pop',         desc: 'Catchy & Bright',        icon: 'album' },
+  { name: 'Soul',        desc: 'Deep & Emotive',         icon: 'sentiment_very_satisfied' },
+  { name: 'Highlife',    desc: 'Joyful & Cultural',      icon: 'celebration' },
 ];
 
 export const MOODS: { name: Mood; icon: string; img: string }[] = [

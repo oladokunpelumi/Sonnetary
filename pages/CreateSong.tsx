@@ -15,12 +15,16 @@ const RECIPIENTS = [
 ];
 
 const NEW_GENRES = [
-  { name: 'Afro-Beats', icon: 'music_note', desc: 'Vibrant & rhythmic' },
-  { name: 'Afro-Jazz', icon: 'nightlife', desc: 'Smooth & soulful' },
-  { name: 'Afro-R&B', icon: 'favorite', desc: 'Romantic & groovy' },
-  { name: 'Afro-Reggae', icon: 'queue_music', desc: 'Island vibes' },
-  { name: 'Afro-House', icon: 'speaker', desc: 'Energetic & driving' },
-  { name: 'Gospel', icon: 'volunteer_activism', desc: 'Uplifting & spiritual' },
+  { name: 'Afro-Beats',  icon: 'music_note',              desc: 'Vibrant & rhythmic' },
+  { name: 'Afro-R&B',   icon: 'favorite',                desc: 'Romantic & groovy' },
+  { name: 'Afro-House',  icon: 'speaker',                 desc: 'Energetic & electric' },
+  { name: 'Afro-Reggae', icon: 'queue_music',             desc: 'Island vibes' },
+  { name: 'Gospel',      icon: 'volunteer_activism',      desc: 'Uplifting & spiritual' },
+  { name: 'R&B',         icon: 'radio',                   desc: 'Smooth & soulful' },
+  { name: 'Hip-Hop',     icon: 'mic',                     desc: 'Bold & rhythmic' },
+  { name: 'Pop',         icon: 'album',                   desc: 'Catchy & bright' },
+  { name: 'Soul',        icon: 'sentiment_very_satisfied', desc: 'Deep & emotive' },
+  { name: 'Highlife',    icon: 'celebration',             desc: 'Joyful & cultural' },
 ];
 
 const VOICES = ['Female Voice', 'Male Voice', 'No Preference'];

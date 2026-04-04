@@ -286,6 +286,56 @@ const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* ── Browse by Genre ─────────────────────────────────────────────────── */}
+      <section className="py-24 sm:py-32 px-6 sm:px-12 bg-surface">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-12 text-center">
+            <h2 className="font-headline italic text-5xl md:text-6xl text-obsidian leading-[0.95] mb-4">
+              Every Genre. One Platform.
+            </h2>
+            <p className="font-body text-obsidian/60 text-lg max-w-xl mx-auto">
+              Whatever sound moves you — we'll make it personal.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { name: 'Afro-Beats',  icon: 'music_note',               desc: 'Vibrant & Rhythmic' },
+              { name: 'Afro-R&B',   icon: 'favorite',                 desc: 'Romantic & Groovy' },
+              { name: 'Afro-House',  icon: 'speaker',                  desc: 'Energetic & Electric' },
+              { name: 'Afro-Reggae', icon: 'queue_music',              desc: 'Island Vibes' },
+              { name: 'Gospel',      icon: 'volunteer_activism',       desc: 'Uplifting & Spiritual' },
+              { name: 'R&B',         icon: 'radio',                    desc: 'Smooth & Soulful' },
+              { name: 'Hip-Hop',     icon: 'mic',                      desc: 'Bold & Rhythmic' },
+              { name: 'Pop',         icon: 'album',                    desc: 'Catchy & Bright' },
+              { name: 'Soul',        icon: 'sentiment_very_satisfied', desc: 'Deep & Emotive' },
+              { name: 'Highlife',    icon: 'celebration',              desc: 'Joyful & Cultural' },
+            ].map((genre) => (
+              <Link
+                key={genre.name}
+                to="/create"
+                className="group flex flex-col items-center text-center gap-3 p-5 rounded-2xl bg-obsidian/5 ring-1 ring-obsidian/10 hover:bg-obsidian hover:ring-obsidian transition-all duration-400 hover:-translate-y-1"
+              >
+                <span
+                  className="material-symbols-outlined text-obsidian/50 group-hover:text-primary transition-colors duration-400"
+                  style={{ fontSize: '36px', fontVariationSettings: "'FILL' 1" }}
+                >
+                  {genre.icon}
+                </span>
+                <div>
+                  <p className="font-headline italic text-obsidian group-hover:text-primary text-base leading-tight transition-colors duration-400">
+                    {genre.name}
+                  </p>
+                  <p className="font-label text-[10px] uppercase tracking-widest text-obsidian/40 group-hover:text-primary/60 mt-1 transition-colors duration-400">
+                    {genre.desc}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section (Adapting to Royal Gold) */}
       <div className="bg-surface">
         <FAQ />

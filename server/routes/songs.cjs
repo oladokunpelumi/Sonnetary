@@ -25,9 +25,9 @@ router.get('/', async (req, res) => {
     try {
         let songs;
         if (isPostgres) {
-            songs = await db.all('SELECT * FROM songs ORDER BY id ASC');
+            songs = await db.all('SELECT * FROM songs ORDER BY sort_order ASC, id ASC');
         } else {
-            songs = db.prepare('SELECT * FROM songs ORDER BY id ASC').all();
+            songs = db.prepare('SELECT * FROM songs ORDER BY sort_order ASC, id ASC').all();
         }
         res.json(songs.map(formatSong));
     } catch (err) {
