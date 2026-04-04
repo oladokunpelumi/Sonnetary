@@ -1,7 +1,29 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { usePlayer } from '../App';
 import FAQ from '../components/FAQ';
+
+// Sound toggle for the music video
+const SoundToggleVideo: React.FC = () => {
+  const [muted, setMuted] = useState(true);
+  const toggle = useCallback(() => {
+    const video = document.querySelector<HTMLVideoElement>('video[data-mv]');
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
+  }, []);
+  return (
+    <button
+      onClick={toggle}
+      className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider hover:bg-black/70 transition-colors"
+    >
+      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+        {muted ? 'volume_off' : 'volume_up'}
+      </span>
+      {muted ? 'Tap for Sound' : 'Mute'}
+    </button>
+  );
+};
 
 const Home: React.FC = () => {
   const { songs, activeSong, playSong, togglePlay, isPlaying } = usePlayer();
@@ -65,6 +87,59 @@ const Home: React.FC = () => {
         {/* Ornamental Elements */}
         <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-white/10 blur-[120px] rounded-full point-events-none"></div>
         <div className="absolute bottom-10 -left-20 w-[400px] h-[400px] bg-obsidian/5 blur-[100px] rounded-full pointer-events-none"></div>
+      </section>
+
+      {/* ── Music Video: Real Song. Real Story. ─────────────────────────────── */}
+      <section className="py-20 sm:py-28 px-6 sm:px-12 bg-obsidian overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <span className="font-label uppercase tracking-[0.3em] text-xs text-primary/50 mb-3 block">
+              Real Song. Real Story.
+            </span>
+            <h2 className="font-headline italic text-4xl md:text-6xl text-primary leading-[0.95] mb-4">
+              Hear it come to life.
+            </h2>
+            <p className="font-body text-primary/60 text-base max-w-lg mx-auto">
+              A real couple. A real anniversary. A song made just for them — by YourGbedu.
+            </p>
+          </div>
+
+          {/* Video container — Instagram Reels style on mobile, cinematic on desktop */}
+          <div className="relative mx-auto w-full max-w-sm md:max-w-3xl">
+            <div className="relative rounded-2xl overflow-hidden bg-black shadow-[0_0_80px_rgba(212,175,55,0.15)] ring-1 ring-primary/10 group">
+              <video
+                data-mv
+                src="/musics/Music%20Video/Anniversary_Music_Video.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="w-full aspect-[9/16] md:aspect-video object-cover"
+              />
+
+              {/* Sound toggle overlay */}
+              <SoundToggleVideo />
+
+              {/* Bottom label */}
+              <div className="absolute bottom-0 left-0 right-0 px-5 py-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+                <p className="font-headline italic text-white text-xl">Anniversary</p>
+                <p className="font-label text-xs uppercase tracking-widest text-white/60">Afro-Beats • YourGbedu Original</p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA below video */}
+          <div className="text-center mt-10">
+            <Link
+              to="/create"
+              className="inline-block bg-primary text-obsidian px-12 py-4 font-label uppercase tracking-widest text-sm rounded-full hover:scale-105 transition-all duration-300 shadow-[0_0_40px_rgba(212,175,55,0.3)]"
+            >
+              Create Your Song
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ── Features Section: The Digital Curator ────────────────────────────── */}
