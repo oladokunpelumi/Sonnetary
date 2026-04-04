@@ -54,9 +54,11 @@ const PersistentPlayer: React.FC = () => {
       {/* Track Info */}
       <div className="flex items-center gap-4 w-1/4 min-w-[140px] md:min-w-[200px]">
         <div className="h-12 w-12 rounded-md bg-surface-container-low relative overflow-hidden group shrink-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform group-hover:scale-110"
-            style={{ backgroundImage: `url(${activeSong.coverUrl})` }}
+          <img
+            src={activeSong.coverUrl}
+            alt={activeSong.title}
+            loading="eager"
+            className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-110"
           />
         </div>
         <div className="flex flex-col overflow-hidden">

@@ -198,9 +198,11 @@ const Home: React.FC = () => {
                 onClick={() => playSong(song)}
               >
                 <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden shadow-obsidian">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                    style={{ backgroundImage: `url(${song.coverUrl})` }}
+                  <img
+                    src={song.coverUrl}
+                    alt={song.title}
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-obsidian/40 flex items-center justify-center">
                     {activeSong?.id === song.id && isPlaying ? (

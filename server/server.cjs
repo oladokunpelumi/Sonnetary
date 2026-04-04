@@ -80,7 +80,20 @@ app.use('/api/paystack/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10kb' }));
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
-app.use('/musics', express.static(path.join(__dirname, '..', 'musics')));
+app.use('/musics', express.static(path.join(__dirname, '..', 'musics'), {
+    maxAge: '7d',           // browsers cache audio/images for 7 days
+    etag: true,             // enables conditional requests (304 Not Modified)
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.mp3')) {
+            res.setHeader('Accept-Ranges', 'bytes'); // enables audio seeking
+            res.setHeader('Cache-Control', 'public, max-age=604800');
+        }
+        if (/\.(png|jpg|jpeg|webp)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        }
+    },
+}));
 
 // Serve the built React SPA in production
 if (IS_PROD) {
