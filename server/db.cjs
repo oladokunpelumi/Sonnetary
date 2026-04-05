@@ -79,7 +79,7 @@ if (songCount.count === 0) {
       genre: 'Afro-Beats',
       duration: '3:45',
       description: '"A celebration of love and togetherness — crafted for a special couple whose bond only grows stronger with every passing year."',
-      cover_url: '/musics/Cover%20Phtotos/Anniversary_Cover.png',
+      cover_url: '/musics/Cover%20Phtotos/Anniversary_Cover.jpg',
       artist: 'A Special Couple',
       tags: JSON.stringify(['Anniversary', 'Love', 'Celebration']),
       audio_url: '/musics/Anniversary.mp3',
@@ -91,7 +91,7 @@ if (songCount.count === 0) {
       genre: 'Afro-R&B',
       duration: '2:30',
       description: '"A song to celebrate our love and all the wonderful moments we share."',
-      cover_url: '/musics/Cover%20Phtotos/valentine.png',
+      cover_url: '/musics/Cover%20Phtotos/valentine.jpg',
       artist: 'Lovers',
       tags: JSON.stringify(['Valentine', 'Romance']),
       audio_url: '/musics/Valentine.mp3',
@@ -103,7 +103,7 @@ if (songCount.count === 0) {
       genre: 'R&B',
       duration: '4:03',
       description: '"We met at a coffee shop on a rainy Tuesday. I spilled my latte, he laughed, and now every moment feels like roses blooming."',
-      cover_url: '/musics/Cover%20Phtotos/LikeRoses_Cover.png',
+      cover_url: '/musics/Cover%20Phtotos/LikeRoses_Cover.jpg',
       artist: 'First Love',
       tags: JSON.stringify(['First Date', 'Love']),
       audio_url: '/musics/Like Roses ( You Are Your Name).mp3',
@@ -115,7 +115,7 @@ if (songCount.count === 0) {
       genre: 'Afro-Beats',
       duration: '1:47',
       description: '"For her milestone birthday, we wanted to capture her radiant energy, her love for life, and the joy she brings to everyone around her."',
-      cover_url: '/musics/Cover%20Phtotos/Mimi_Cover.png',
+      cover_url: '/musics/Cover%20Phtotos/Mimi_Cover.jpg',
       artist: 'The Family',
       tags: JSON.stringify(['Birthday', 'Celebration']),
       audio_url: '/musics/Mimi (Give Me Wealth).mp3',
@@ -159,7 +159,7 @@ try {
     `).run(
       'Anniversary', 'Afro-Beats', '3:45',
       '"A celebration of love and togetherness — crafted for a special couple whose bond only grows stronger with every passing year."',
-      '/musics/Cover%20Phtotos/Anniversary_Cover.png',
+      '/musics/Cover%20Phtotos/Anniversary_Cover.jpg',
       'A Special Couple',
       JSON.stringify(['Anniversary', 'Love', 'Celebration']),
       '/musics/Anniversary.mp3',
@@ -172,10 +172,10 @@ try {
 
 // Update cover photos for all songs
 try {
-  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/Anniversary_Cover.png' WHERE title = 'Anniversary'").run();
-  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/valentine.png' WHERE title = 'Valentine'").run();
-  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/LikeRoses_Cover.png' WHERE title = 'Like Roses (You Are Your Name)'").run();
-  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/Mimi_Cover.png' WHERE title = 'Mimi (Give Me Wealth)'").run();
+  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/Anniversary_Cover.jpg' WHERE title = 'Anniversary'").run();
+  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/valentine.jpg' WHERE title = 'Valentine'").run();
+  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/LikeRoses_Cover.jpg' WHERE title = 'Like Roses (You Are Your Name)'").run();
+  db.prepare("UPDATE songs SET cover_url = '/musics/Cover%20Phtotos/Mimi_Cover.jpg' WHERE title = 'Mimi (Give Me Wealth)'").run();
 } catch (e) {}
 
 // Set sort_order for all songs
