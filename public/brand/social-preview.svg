@@ -1,0 +1,63 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>YourGbedu social preview</title>
+  <rect width="1200" height="630" fill="#FAF6EE"/>
+  <rect width="1200" height="630" fill="url(#warm-wash)"/>
+  <path d="M0 178C74 150 142 170 210 118C249 88 265 42 276 0" stroke="#D8B253" stroke-opacity=".38" stroke-width="1.2"/>
+  <path d="M1165 462C1127 493 1118 540 1121 630" stroke="#D8B253" stroke-opacity=".42" stroke-width="1.2"/>
+  <g opacity=".38">
+    <circle cx="1018" cy="-36" r="226" stroke="#D8B253" stroke-width="1.2"/>
+    <circle cx="1018" cy="-36" r="207" stroke="#D8B253" stroke-width="1.1"/>
+    <circle cx="1018" cy="-36" r="188" stroke="#D8B253" stroke-width="1"/>
+    <circle cx="1018" cy="-36" r="169" stroke="#D8B253" stroke-width=".95"/>
+    <circle cx="1018" cy="-36" r="150" stroke="#D8B253" stroke-width=".9"/>
+    <circle cx="1018" cy="-36" r="131" stroke="#D8B253" stroke-width=".85"/>
+    <circle cx="1018" cy="-36" r="112" stroke="#D8B253" stroke-width=".8"/>
+  </g>
+  <g opacity=".2">
+    <circle cx="96" cy="664" r="178" stroke="#D8B253" stroke-width="1.2"/>
+    <circle cx="96" cy="664" r="160" stroke="#D8B253" stroke-width="1.1"/>
+    <circle cx="96" cy="664" r="142" stroke="#D8B253" stroke-width="1"/>
+    <circle cx="96" cy="664" r="124" stroke="#D8B253" stroke-width=".95"/>
+    <circle cx="96" cy="664" r="106" stroke="#D8B253" stroke-width=".9"/>
+  </g>
+  <g transform="translate(336 226) scale(.34)">
+    <path d="M86 244a170 170 0 0 1 130-158" stroke="url(#social-terracotta)" stroke-width="18" stroke-linecap="round"/>
+    <path d="M244 82a170 170 0 0 1 156 104" stroke="#D8B253" stroke-width="11" stroke-linecap="round"/>
+    <path d="M419 214a170 170 0 0 1 0 88" stroke="#943B2F" stroke-width="11" stroke-linecap="round"/>
+    <path d="M400 330a170 170 0 0 1-148 100" stroke="#943B2F" stroke-width="18" stroke-linecap="round"/>
+    <path d="M219 428A170 170 0 0 1 87 301" stroke="#1F1B14" stroke-width="17" stroke-linecap="round"/>
+    <path d="M110 284a134 134 0 0 1 58-151" stroke="#1F1B14" stroke-width="16" stroke-linecap="round"/>
+    <path d="M191 116a134 134 0 0 1 166 88" stroke="#1F1B14" stroke-width="10" stroke-linecap="round"/>
+    <path d="M376 235a134 134 0 0 1-34 102" stroke="#1F1B14" stroke-width="17" stroke-linecap="round"/>
+    <path d="M315 363a134 134 0 0 1-116 13" stroke="#D8B253" stroke-width="18" stroke-linecap="round"/>
+    <path d="M149 203a96 96 0 0 1 69-49" stroke="#D8B253" stroke-width="7" stroke-linecap="round"/>
+    <path d="M238 150a96 96 0 0 1 35 6" stroke="#1F1B14" stroke-width="7" stroke-linecap="round"/>
+    <path d="M143 272a96 96 0 0 1 50-101" stroke="#D8B253" stroke-width="8" stroke-linecap="round"/>
+    <path d="M159 307a96 96 0 0 0 128 36" stroke="#943B2F" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="256" cy="256" r="61" fill="url(#social-gold-record)"/>
+    <circle cx="256" cy="256" r="13" fill="#FFFDF6"/>
+  </g>
+  <text x="500" y="365" font-family="Cormorant Garamond, Georgia, serif" font-size="96" font-weight="600" letter-spacing="-2.1">
+    <tspan fill="#1F1B14">Your</tspan><tspan fill="url(#social-g)">G</tspan><tspan fill="#1F1B14">bedu</tspan>
+  </text>
+  <text x="357" y="454" fill="#5A2D1B" font-family="DM Sans, Inter, sans-serif" font-size="22" font-weight="500" letter-spacing="10">Building stronger bonds through music.</text>
+  <defs>
+    <radialGradient id="warm-wash" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(600 296) rotate(90) scale(315 590)">
+      <stop stop-color="#FFFDF6"/>
+      <stop offset="1" stop-color="#FAF6EE"/>
+    </radialGradient>
+    <linearGradient id="social-terracotta" x1="86" y1="244" x2="223" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#943B2F"/>
+      <stop offset="1" stop-color="#C25531"/>
+    </linearGradient>
+    <linearGradient id="social-g" x1="646" y1="292" x2="710" y2="374" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#943B2F"/>
+      <stop offset="1" stop-color="#C25531"/>
+    </linearGradient>
+    <radialGradient id="social-gold-record" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(234 225) rotate(45) scale(125)">
+      <stop stop-color="#F0DCA8"/>
+      <stop offset=".54" stop-color="#D8B253"/>
+      <stop offset="1" stop-color="#A77E2F"/>
+    </radialGradient>
+  </defs>
+</svg>

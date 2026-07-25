@@ -41,7 +41,7 @@ function statusClass(status?: string | null) {
       return 'border-sage-soft bg-sage-pale text-sage-dark';
     case 'running':
     case 'queued':
-      return 'border-mustard/30 bg-mustard-pale text-[#6F521F]';
+      return 'border-mustard/30 bg-mustard-pale text-gold-readable';
     case 'needs_human_review':
     case 'invalid_input':
     case 'failed':
@@ -225,7 +225,7 @@ export const SongPipelinePanel: React.FC<Props> = ({
     <div className="mt-4 border-t border-line pt-4">
       <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="material-symbols-outlined text-base text-terracotta">auto_awesome</span>
+          <span className="material-symbols-outlined text-base text-terracotta" aria-hidden="true">auto_awesome</span>
           <span className="font-label text-xs font-bold uppercase tracking-[0.14em] text-terracotta">
             Song Pipeline
           </span>
@@ -257,7 +257,7 @@ export const SongPipelinePanel: React.FC<Props> = ({
             type="button"
             onClick={fetchGeneration}
             disabled={loading}
-            className="flex size-8 items-center justify-center rounded-full border border-line-strong text-ink-muted hover:text-terracotta disabled:opacity-60"
+            className="flex size-11 items-center justify-center rounded-full border border-line-control text-ink-muted hover:text-terracotta disabled:opacity-60"
             aria-label="Refresh generation"
           >
             <span className={`material-symbols-outlined text-sm ${loading ? 'animate-spin' : ''}`}>refresh</span>
@@ -284,7 +284,7 @@ export const SongPipelinePanel: React.FC<Props> = ({
                 dirtyOverridesRef.current = { ...dirtyOverridesRef.current, [field]: true };
               }}
               disabled={status === 'running'}
-              className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/20 disabled:opacity-60"
+              className="w-full rounded-lg border border-line-control bg-cream px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/20 disabled:opacity-60"
             >
               <option value="">Auto</option>
               {values.map((value) => <option key={value} value={value}>{labelize(value)}</option>)}
@@ -309,13 +309,13 @@ export const SongPipelinePanel: React.FC<Props> = ({
             }), 'Pipeline overrides saved. Regenerate from Intake to apply them.', { resetDrafts: true });
           }}
           disabled={action !== null || status === 'running'}
-          className="inline-flex items-center gap-1 rounded-full border border-line-strong px-3 py-1.5 text-xs font-bold text-ink-soft hover:border-terracotta hover:text-terracotta disabled:opacity-60"
+          className="inline-flex items-center gap-1 rounded-full border border-line-control px-3 py-1.5 text-xs font-bold text-ink-soft hover:border-terracotta hover:text-terracotta disabled:opacity-60"
         >
-          <span className="material-symbols-outlined text-sm">save</span>
+          <span className="material-symbols-outlined text-sm" aria-hidden="true">save</span>
           Save Overrides
         </button>
         {Object.values(dirtyOverrides).some(Boolean) && (
-          <span className="rounded-full bg-mustard-pale px-2 py-0.5 text-xs font-bold text-[#6F521F]">
+          <span className="rounded-full bg-mustard-pale px-2 py-0.5 text-xs font-bold text-gold-readable">
             Unsaved changes — save, then regenerate from Intake
           </span>
         )}
@@ -336,16 +336,16 @@ export const SongPipelinePanel: React.FC<Props> = ({
               >
                 <span className="flex items-center gap-2 text-sm font-bold text-ink">
                   <span className={`size-2 rounded-full ${stageDot(info.status)}`} />
-                  <span className="material-symbols-outlined text-base text-ink-muted">{stage.icon}</span>
+                  <span className="material-symbols-outlined text-base text-ink-muted" aria-hidden="true">{stage.icon}</span>
                   {stage.label}
                 </span>
-                <span className="text-[11px] font-bold text-ink-muted">{labelize(info.status || 'pending')}</span>
+                <span className="text-sm font-semibold text-ink-muted">{labelize(info.status || 'pending')}</span>
               </button>
             );
           })}
         </div>
 
-        <div className="min-w-0 rounded-xl border border-line bg-ivory p-3">
+        <div className="min-w-0 rounded-lg border border-line bg-ivory p-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h4 className="font-label text-xs font-bold uppercase tracking-[0.14em] text-terracotta">
               {labelize(expandedStage)}
@@ -366,14 +366,17 @@ export const SongPipelinePanel: React.FC<Props> = ({
                 disabled={action !== null || status === 'running'}
                 className="inline-flex items-center gap-1 rounded-full bg-terracotta px-3 py-1.5 text-xs font-bold text-cream disabled:opacity-60"
               >
-                <span className="material-symbols-outlined text-sm">replay</span>
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">replay</span>
                 Regenerate
               </button>
             )}
           </div>
           {stageOutput}
           {expandedStage !== 'format' && (
+            <>
+            <label className="sr-only" htmlFor={`pipeline-comment-${orderId}-${expandedStage}`}>Guidance for {labelize(expandedStage)} regeneration</label>
             <textarea
+              id={`pipeline-comment-${orderId}-${expandedStage}`}
               value={comments[expandedStage] || ''}
               onChange={(e) => {
                 const stage = expandedStage;
@@ -382,27 +385,28 @@ export const SongPipelinePanel: React.FC<Props> = ({
               }}
               rows={3}
               placeholder="Admin guidance — applied when you click Regenerate"
-              className="mt-3 w-full rounded-lg border border-line bg-cream px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-terracotta/20"
+              className="mt-3 w-full rounded-lg border border-line-control bg-cream px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-terracotta/20"
             />
+            </>
           )}
         </div>
       </div>
 
       {finalOutput && (
-        <div className="mt-4 rounded-xl border border-sage-soft bg-sage-pale/50 p-4">
+        <div className="mt-4 rounded-lg border border-sage-soft bg-sage-pale/50 p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h4 className="font-label text-xs font-bold uppercase tracking-[0.14em] text-sage-dark">
                 Final Package
               </h4>
-              <p className="mt-1 font-serif text-2xl text-ink">{finalOutput.title || 'Untitled'}</p>
+              <p className="mt-1 font-body text-xl font-bold text-ink">{finalOutput.title || 'Untitled'}</p>
             </div>
             <button
               type="button"
               onClick={() => copyText(finalOutput.operator_paste_block || '', 'Song package copied.')}
-              className="inline-flex items-center gap-1 rounded-full bg-sage px-4 py-2 text-xs font-bold text-cream"
+              className="inline-flex items-center gap-1 rounded-full bg-sage-dark px-4 py-2 text-xs font-bold text-cream"
             >
-              <span className="material-symbols-outlined text-sm">content_copy</span>
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">content_copy</span>
               Copy Package
             </button>
           </div>

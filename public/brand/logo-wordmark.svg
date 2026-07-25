@@ -1,0 +1,12 @@
+<svg width="1040" height="250" viewBox="0 0 1040 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>YourGbedu wordmark</title>
+  <text x="32" y="172" font-family="Cormorant Garamond, Georgia, serif" font-size="156" font-weight="600" letter-spacing="-3.4">
+    <tspan fill="#1F1B14">Your</tspan><tspan fill="url(#wordmark-g)">G</tspan><tspan fill="#1F1B14">bedu</tspan>
+  </text>
+  <defs>
+    <linearGradient id="wordmark-g" x1="350" y1="56" x2="436" y2="184" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#943B2F"/>
+      <stop offset="1" stop-color="#C25531"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import { usePlayer } from '../contexts/PlayerContext';
 import FAQ from '../components/FAQ';
 
+// Homepage demo video is hardcoded (not a DB catalogue entry), so it needs its own
+// CDN base — the server's MEDIA_BASE_URL rewrite in server/db.cjs only touches the
+// `songs` table. Unset in dev → falls back to the local /musics static route.
+const MEDIA_BASE_URL = ((import.meta.env.VITE_MEDIA_BASE_URL as string | undefined) || '').replace(/\/$/, '');
+
 const PROCESS_STEPS = [
   {
     id: '01',
@@ -31,8 +36,8 @@ const RELATIONSHIPS = [
     accentLine: 'bg-sage-soft',
     borderClass: 'border-sage-soft/30 hover:border-sage-soft focus-visible:border-sage-soft',
     washClass: 'bg-sage/20',
-    eyebrowClass: 'text-sage-soft group-hover:text-sage-dark group-focus-visible:text-sage-dark',
-    ctaClass: 'text-sage-soft group-hover:text-sage-dark group-focus-visible:text-sage-dark',
+    eyebrowClass: 'text-cream group-hover:text-sage-dark group-focus-visible:text-sage-dark',
+    ctaClass: 'text-cream group-hover:text-sage-dark group-focus-visible:text-sage-dark',
     eyebrow: 'For the ones who raised you',
     caption: 'Gratitude, birthdays, legacy, prayers, and the memories that shaped home.',
   },
@@ -45,8 +50,8 @@ const RELATIONSHIPS = [
     accentLine: 'bg-mustard-soft',
     borderClass: 'border-mustard-soft/35 hover:border-mustard-soft focus-visible:border-mustard-soft',
     washClass: 'bg-mustard/20',
-    eyebrowClass: 'text-mustard-soft group-hover:text-[#6F521F] group-focus-visible:text-[#6F521F]',
-    ctaClass: 'text-mustard-soft group-hover:text-[#6F521F] group-focus-visible:text-[#6F521F]',
+    eyebrowClass: 'text-cream group-hover:text-gold-readable group-focus-visible:text-gold-readable',
+    ctaClass: 'text-cream group-hover:text-gold-readable group-focus-visible:text-gold-readable',
     eyebrow: 'For your chosen circle',
     caption: 'Inside jokes, loyalty, celebration, encouragement, and shared history.',
   },
@@ -59,8 +64,8 @@ const RELATIONSHIPS = [
     accentLine: 'bg-terracotta-soft',
     borderClass: 'border-terracotta-soft/35 hover:border-terracotta-soft focus-visible:border-terracotta-soft',
     washClass: 'bg-terracotta/20',
-    eyebrowClass: 'text-terracotta-soft group-hover:text-terracotta-dark group-focus-visible:text-terracotta-dark',
-    ctaClass: 'text-terracotta-soft group-hover:text-terracotta-dark group-focus-visible:text-terracotta-dark',
+    eyebrowClass: 'text-cream group-hover:text-terracotta-dark group-focus-visible:text-terracotta-dark',
+    ctaClass: 'text-cream group-hover:text-terracotta-dark group-focus-visible:text-terracotta-dark',
     eyebrow: 'For romantic stories',
     caption: 'Anniversaries, proposals, Valentine moments, apologies, and devotion.',
   },
@@ -71,10 +76,10 @@ const RELATIONSHIPS = [
     coverAlt: 'Warm portrait representing a custom song for yourself',
     coverPosition: 'object-center',
     accentLine: 'bg-line-strong',
-    borderClass: 'border-line-strong/45 hover:border-line-strong focus-visible:border-line-strong',
+    borderClass: 'border-line-control/60 hover:border-line-control focus-visible:border-line-control',
     washClass: 'bg-cream/20',
-    eyebrowClass: 'text-cream/70 group-hover:text-ink-muted group-focus-visible:text-ink-muted',
-    ctaClass: 'text-cream/80 group-hover:text-ink group-focus-visible:text-ink',
+    eyebrowClass: 'text-cream group-hover:text-ink-muted group-focus-visible:text-ink-muted',
+    ctaClass: 'text-cream group-hover:text-ink group-focus-visible:text-ink',
     eyebrow: 'For your own chapter',
     caption: 'Healing, courage, self-belief, new seasons, and words you need to hear.',
   },
@@ -93,6 +98,24 @@ const GENRES = [
 
 const SoundToggleVideo: React.FC = () => {
   const [muted, setMuted] = useState(true);
+  const [paused, setPaused] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    const video = document.querySelector<HTMLVideoElement>('video[data-mv]');
+    if (!video) return undefined;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) video.pause();
+    const sync = () => setPaused(video.paused);
+    video.addEventListener('play', sync);
+    video.addEventListener('pause', sync);
+    return () => {
+      video.removeEventListener('play', sync);
+      video.removeEventListener('pause', sync);
+    };
+  }, []);
+
   const toggle = useCallback(() => {
     const video = document.querySelector<HTMLVideoElement>('video[data-mv]');
     if (!video) return;
@@ -100,16 +123,35 @@ const SoundToggleVideo: React.FC = () => {
     setMuted(video.muted);
   }, []);
 
+  const togglePlayback = useCallback(() => {
+    const video = document.querySelector<HTMLVideoElement>('video[data-mv]');
+    if (!video) return;
+    if (video.paused) void video.play();
+    else video.pause();
+  }, []);
+
   return (
-    <button
-      onClick={toggle}
-      className="absolute right-4 top-4 z-10 inline-flex items-center gap-2 rounded-full border border-cream/20 bg-ink/70 px-4 py-2 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream backdrop-blur transition-colors hover:bg-ink"
-    >
-      <span className="material-symbols-outlined text-sm" aria-hidden="true">
-        {muted ? 'volume_off' : 'volume_up'}
-      </span>
-      {muted ? 'Sound' : 'Mute'}
-    </button>
+    <div className="absolute right-4 top-4 z-10 flex gap-2">
+      <button
+        type="button"
+        onClick={togglePlayback}
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-cream/40 bg-ink/75 text-cream backdrop-blur transition-colors hover:bg-ink"
+        aria-label={paused ? 'Play featured video' : 'Pause featured video'}
+        title={paused ? 'Play video' : 'Pause video'}
+      >
+        <span className="material-symbols-outlined text-xl" aria-hidden="true">{paused ? 'play_arrow' : 'pause'}</span>
+      </button>
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-cream/40 bg-ink/75 text-cream backdrop-blur transition-colors hover:bg-ink"
+        aria-label={muted ? 'Turn on featured video sound' : 'Mute featured video'}
+        aria-pressed={!muted}
+        title={muted ? 'Turn on sound' : 'Mute'}
+      >
+        <span className="material-symbols-outlined text-xl" aria-hidden="true">{muted ? 'volume_off' : 'volume_up'}</span>
+      </button>
+    </div>
   );
 };
 
@@ -168,7 +210,7 @@ const Home: React.FC = () => {
               </Link>
               <Link
                 to="/library"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-strong bg-cream px-8 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-control bg-cream px-8 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
               >
                 Hear the catalogue
               </Link>
@@ -181,7 +223,7 @@ const Home: React.FC = () => {
                 ['100%', 'story led'],
               ].map(([value, label]) => (
                 <div key={label}>
-                  <p className="font-headline text-4xl font-semibold leading-none text-ink">
+                  <p className="font-mono text-3xl font-bold leading-none text-ink">
                     {value}
                   </p>
                   <p className="mt-2 font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
@@ -193,11 +235,11 @@ const Home: React.FC = () => {
           </div>
 
           <div className="relative">
-            <div className="editorial-panel overflow-hidden p-3">
+            <div className="overflow-hidden border-y border-line py-3">
               <img
                 src="/images/Homepage.webp"
                 alt="A YourGbedu artist listening through a finished custom song"
-                className="aspect-[4/5] w-full rounded-2xl object-cover sepia-[0.12] lg:aspect-auto lg:h-[52svh] lg:max-h-[620px] lg:min-h-[420px]"
+                className="aspect-[4/5] w-full object-cover lg:aspect-auto lg:h-[52svh] lg:max-h-[620px] lg:min-h-[420px]"
               />
               <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 border-t border-line px-2 py-5">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-mustard-pale text-mustard">
@@ -223,7 +265,7 @@ const Home: React.FC = () => {
       <section className="bg-terracotta px-5 py-20 text-cream sm:px-8 lg:px-12 lg:py-28">
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <div>
-            <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-terracotta-soft">
+            <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-mustard-soft">
               Real song. Real story.
             </p>
             <h2 className="mt-4 font-headline text-5xl font-medium leading-none sm:text-6xl">
@@ -241,10 +283,10 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
-          <div className="relative overflow-hidden rounded-[1.25rem] border border-cream/15 bg-ink shadow-[0_20px_50px_rgba(31,27,20,0.22)]">
+          <div className="relative overflow-hidden rounded-lg border border-cream/15 bg-ink shadow-[0_20px_50px_rgba(31,27,20,0.22)]">
             <video
               data-mv
-              src="/musics/Music%20Video/Anniversary_Music_Video.mp4"
+              src={`${MEDIA_BASE_URL}/musics/Music%20Video/Anniversary_Music_Video.mp4`}
               autoPlay
               muted
               loop
@@ -254,7 +296,7 @@ const Home: React.FC = () => {
             />
             <SoundToggleVideo />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/70 to-transparent px-5 pb-5 pt-14">
-              <p className="font-headline text-2xl italic text-cream">Anniversary</p>
+              <p className="font-body text-xl font-bold text-cream">Anniversary</p>
               <p className="font-label text-xs font-bold uppercase tracking-[0.16em] text-cream/60">
                 Afro-Beats sample
               </p>
@@ -279,10 +321,10 @@ const Home: React.FC = () => {
                 ref={(el) => {
                   revealRefs.current[idx] = el;
                 }}
-                className="reveal rounded-2xl border border-line bg-cream p-6 transition-transform duration-300 hover:-translate-y-1"
+                className="reveal border-t border-line p-6"
               >
-                <p className="font-headline text-5xl italic text-terracotta/30">{step.id}</p>
-                <h3 className="mt-8 font-headline text-3xl font-semibold leading-none text-ink">
+                <p className="font-headline text-5xl italic text-terracotta/30" aria-hidden="true">{step.id}</p>
+                <h3 className="mt-8 font-body text-xl font-bold leading-tight text-ink">
                   {step.title}
                 </h3>
                 <p className="mt-4 text-sm leading-7 text-ink-soft">{step.desc}</p>
@@ -308,7 +350,7 @@ const Home: React.FC = () => {
           </div>
 
           <div className="grid gap-8 lg:grid-cols-[380px_minmax(0,1fr)]">
-            <div className="rounded-[1.4rem] bg-ink p-7 text-cream">
+            <div className="rounded-lg bg-ink p-7 text-cream">
               <div className="mx-auto flex aspect-square max-w-[280px] items-center justify-center rounded-full border border-cream/10 bg-[radial-gradient(circle,#3a3123_0_17%,#15120d_18%_28%,#2a2218_29%_36%,#100d09_37%_100%)] shadow-[inset_0_0_0_16px_rgba(255,253,246,0.03)]">
                 <button
                   type="button"
@@ -324,7 +366,7 @@ const Home: React.FC = () => {
               <p className="mt-8 font-label text-xs font-bold uppercase tracking-[0.18em] text-mustard-soft">
                 Now selected
               </p>
-              <h3 className="mt-2 font-headline text-4xl italic leading-none text-cream">
+              <h3 className="mt-2 font-body text-2xl font-bold leading-tight text-cream">
                 {activeSong?.title || 'Select a sample'}
               </h3>
               <p className="mt-3 text-sm leading-6 text-cream/60">
@@ -340,10 +382,10 @@ const Home: React.FC = () => {
                     type="button"
                     key={song.id}
                     onClick={() => playSong(song)}
-                    className={`grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border p-3 text-left transition-colors ${
+                    className={`grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border p-3 text-left transition-colors ${
                       isCurrent
                         ? 'border-terracotta bg-terracotta-pale'
-                        : 'border-line bg-ivory hover:border-terracotta/60 hover:bg-cream'
+                        : 'border-line-control bg-ivory hover:border-terracotta hover:bg-cream'
                     }`}
                   >
                   <img
@@ -351,13 +393,13 @@ const Home: React.FC = () => {
                     alt=""
                     loading="lazy"
                     decoding="async"
-                    className="h-[72px] w-[72px] rounded-xl object-cover"
+                    className="h-[72px] w-[72px] rounded-lg object-cover"
                   />
                     <span className="min-w-0">
                       <span className="block font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
                         {song.genre}
                       </span>
-                      <span className="mt-1 block truncate font-headline text-2xl italic leading-none text-ink">
+                      <span className="mt-1 block truncate font-body text-lg font-bold leading-tight text-ink">
                         {song.title}
                       </span>
                       <span className="mt-2 line-clamp-1 block text-sm text-ink-soft">
@@ -374,13 +416,13 @@ const Home: React.FC = () => {
               })}
 
               {isSongsLoading && songs.length === 0 && (
-                <div className="rounded-2xl border border-line bg-ivory p-8 text-center text-ink-muted">
+                <div role="status" className="rounded-lg border border-line bg-ivory p-8 text-center text-ink-muted">
                   Loading songs...
                 </div>
               )}
 
               {songsError && !isSongsLoading && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-700">
+                <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-700">
                   <p className="font-bold">Catalogue unavailable</p>
                   <p className="mt-1 text-sm">{songsError}</p>
                   <button
@@ -395,7 +437,7 @@ const Home: React.FC = () => {
 
               <Link
                 to="/library"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-strong px-7 py-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-control px-7 py-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
               >
                 Open full catalogue
               </Link>
@@ -404,10 +446,10 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-sage px-5 py-20 text-cream sm:px-8 lg:px-12 lg:py-28">
+      <section className="bg-sage-dark px-5 py-20 text-cream sm:px-8 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 max-w-2xl">
-            <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-sage-soft">
+            <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-cream">
               A song for everyone
             </p>
             <h2 className="mt-4 font-headline text-5xl font-medium leading-none sm:text-6xl">
@@ -420,20 +462,16 @@ const Home: React.FC = () => {
               <Link
                 key={item.label}
                 to={`/create?recipient=${item.slug}`}
-                className={`group relative flex min-h-[430px] flex-col overflow-hidden rounded-2xl border bg-cream/[0.08] p-3 text-cream transition-colors duration-300 hover:bg-cream hover:text-ink focus-visible:bg-cream focus-visible:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mustard-soft motion-reduce:transition-none ${item.borderClass}`}
+                className={`group relative flex min-h-[430px] flex-col overflow-hidden rounded-lg border bg-cream/[0.08] p-3 text-cream transition-colors duration-300 hover:bg-cream hover:text-ink focus-visible:bg-cream focus-visible:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-mustard-soft motion-reduce:transition-none ${item.borderClass}`}
               >
                 <span className={`absolute inset-x-5 top-0 h-1 rounded-b-full ${item.accentLine}`} aria-hidden="true" />
-                <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-ink/20">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-ink/20">
                   <img
                     src={item.cover}
                     alt={item.coverAlt}
-                    className={`h-full w-full object-cover saturate-[0.72] contrast-[0.92] brightness-[0.9] transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.035] group-hover:saturate-100 group-hover:contrast-100 group-hover:brightness-100 group-focus-visible:scale-[1.035] group-focus-visible:saturate-100 group-focus-visible:contrast-100 group-focus-visible:brightness-100 group-active:saturate-100 group-active:contrast-100 group-active:brightness-100 motion-reduce:transform-none motion-reduce:transition-none ${item.coverPosition}`}
+                    className={`h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035] group-focus-visible:scale-[1.035] motion-reduce:transform-none motion-reduce:transition-none ${item.coverPosition}`}
                     loading="lazy"
                     decoding="async"
-                  />
-                  <div
-                    className={`absolute inset-0 opacity-80 transition-opacity duration-500 group-hover:opacity-0 group-focus-visible:opacity-0 group-active:opacity-0 motion-reduce:transition-none ${item.washClass}`}
-                    aria-hidden="true"
                   />
                   <div
                     className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink/55 to-transparent"
@@ -443,8 +481,8 @@ const Home: React.FC = () => {
                 <p className={`mt-5 font-label text-xs font-bold uppercase tracking-[0.16em] transition-colors ${item.eyebrowClass}`}>
                   {item.eyebrow}
                 </p>
-                <h3 className="mt-1 font-headline text-3xl italic leading-none">{item.label}</h3>
-                <p className="mt-3 text-sm leading-6 text-cream/70 transition-colors group-hover:text-ink-soft group-focus-visible:text-ink-soft">
+                <h3 className="mt-1 font-body text-xl font-bold leading-tight">{item.label}</h3>
+                <p className="mt-3 text-sm leading-6 text-cream/85 transition-colors group-hover:text-ink-soft group-focus-visible:text-ink-soft">
                   {item.caption}
                 </p>
                 <span className={`mt-auto inline-flex items-center gap-2 pt-6 font-label text-xs font-bold uppercase tracking-[0.16em] transition-colors ${item.ctaClass}`}>
@@ -472,13 +510,13 @@ const Home: React.FC = () => {
               <Link
                 key={name}
                 to="/create"
-                className={`rounded-2xl border p-5 transition-transform hover:-translate-y-1 ${
+                className={`rounded-lg border p-5 transition-transform hover:-translate-y-1 ${
                   idx === 0
                     ? 'border-ink bg-ink text-cream'
-                    : 'border-line bg-cream text-ink hover:border-terracotta'
+                    : 'border-line-control bg-cream text-ink hover:border-terracotta'
                 }`}
               >
-                <p className="font-headline text-3xl italic leading-none">{name}</p>
+                <p className="font-body text-xl font-bold leading-tight">{name}</p>
                 <p className={`mt-3 font-label text-xs font-bold uppercase tracking-[0.14em] ${idx === 0 ? 'text-mustard-soft' : 'text-ink-muted'}`}>
                   {desc}
                 </p>

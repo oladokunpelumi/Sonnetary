@@ -39,3 +39,6 @@ server/*.db-wal
 design Prompt/
 Design improv/
 musics/
+
+# Claude Code local tooling (dev-server config, local settings)
+.claude/

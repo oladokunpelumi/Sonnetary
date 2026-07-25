@@ -20,12 +20,6 @@ const loginLimiter = rateLimit({
     skipSuccessfulRequests: true,
 });
 
-let db;
-function getDb() {
-    if (!db) db = require('../db.cjs');
-    return db;
-}
-
 let emailModule;
 function getEmailModule() {
     if (!emailModule) emailModule = require('../email.cjs');

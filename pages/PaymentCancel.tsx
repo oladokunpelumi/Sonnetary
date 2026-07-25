@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const PaymentCancel: React.FC = () => {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center bg-ivory px-6 py-24">
-      <div className="mx-auto flex max-w-2xl flex-col items-center gap-8 rounded-2xl border border-line bg-cream p-6 text-center sm:p-8">
+      <div className="mx-auto flex max-w-2xl flex-col items-center gap-8 border-y border-line bg-cream px-6 py-10 text-center sm:px-8">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-terracotta-pale text-terracotta">
         <span className="material-symbols-outlined text-5xl" aria-hidden="true">close</span>
       </div>
@@ -22,12 +22,12 @@ const PaymentCancel: React.FC = () => {
           to="/create"
           className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-cream transition-colors hover:bg-terracotta"
         >
-          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
           Return to Brief
         </Link>
         <Link
           to="/"
-          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-line-strong px-6 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-line-control px-6 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
         >
           Back to Home
         </Link>

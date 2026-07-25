@@ -26,9 +26,15 @@ const SongReady: React.FC<SongReadyProps> = ({ order, onRatingSaved }) => {
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
   const [savingRating, setSavingRating] = useState(false);
 
-  useEffect(() => {
-    setRating(order.rating || 0);
-  }, [order.rating]);
+  // Re-sync from the prop when the parent refetches the order. Done during render
+  // (React's documented "adjusting state when props change" pattern) rather than in
+  // an effect, which would cause an extra commit and trips set-state-in-effect.
+  const incomingRating = order.rating || 0;
+  const [lastSyncedRating, setLastSyncedRating] = useState<number>(incomingRating);
+  if (incomingRating !== lastSyncedRating) {
+    setLastSyncedRating(incomingRating);
+    setRating(incomingRating);
+  }
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -65,24 +71,52 @@ const SongReady: React.FC<SongReadyProps> = ({ order, onRatingSaved }) => {
     setCurrentTime(next);
   }, []);
 
+  // Arrow-keying across the radiogroup changes selection on every keypress, so the
+  // PATCH is debounced — otherwise moving 1->5 fires four writes for one decision.
+  // Local state still updates immediately so the radiogroup stays ARIA-correct.
+  const persistTimerRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (persistTimerRef.current !== null) window.clearTimeout(persistTimerRef.current);
+  }, []);
+
   const submitRating = useCallback(
-    async (value: number) => {
+    (value: number) => {
       setRating(value);
-      setSavingRating(true);
-      try {
+      if (persistTimerRef.current !== null) window.clearTimeout(persistTimerRef.current);
+
+      persistTimerRef.current = window.setTimeout(() => {
+        persistTimerRef.current = null;
+        setSavingRating(true);
         const tokenParam = order.trackingToken ? `?t=${encodeURIComponent(order.trackingToken)}` : '';
-        await fetch(`/api/orders/${encodeURIComponent(order.id)}/rating${tokenParam}`, {
+        void fetch(`/api/orders/${encodeURIComponent(order.id)}/rating${tokenParam}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ rating: value }),
           credentials: 'include',
-        });
-        onRatingSaved?.(value);
-      } finally {
-        setSavingRating(false);
-      }
+        })
+          .then(() => onRatingSaved?.(value))
+          .finally(() => setSavingRating(false));
+      }, 400);
     },
     [order.id, order.trackingToken, onRatingSaved]
+  );
+
+  const handleRatingKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>, star: number) => {
+      let nextRating: number | null = null;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') nextRating = Math.min(5, star + 1);
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') nextRating = Math.max(1, star - 1);
+      if (event.key === 'Home') nextRating = 1;
+      if (event.key === 'End') nextRating = 5;
+      if (nextRating === null) return;
+
+      event.preventDefault();
+      void submitRating(nextRating);
+      event.currentTarget.parentElement
+        ?.querySelector<HTMLButtonElement>(`button[data-rating="${nextRating}"]`)
+        ?.focus();
+    },
+    [submitRating]
   );
 
   const handleShare = useCallback(async () => {
@@ -139,10 +173,11 @@ const SongReady: React.FC<SongReadyProps> = ({ order, onRatingSaved }) => {
           value={currentTime}
           onChange={handleScrub}
           disabled={!duration}
-          className="w-full accent-terracotta"
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+          className="min-h-11 w-full accent-terracotta"
           aria-label="Seek"
         />
-        <div className="mt-1 flex justify-between font-label text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted">
+        <div className="mt-1 flex justify-between font-mono text-sm font-medium text-ink-muted">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -163,8 +198,8 @@ const SongReady: React.FC<SongReadyProps> = ({ order, onRatingSaved }) => {
 
       <audio ref={audioRef} src={order.finalSongUrl || undefined} preload="metadata" />
 
-      <div className="mt-10 w-full max-w-md rounded-2xl border border-line bg-cream p-5 text-center">
-        <p className="font-headline text-2xl font-medium text-ink">How did we do?</p>
+      <div className="mt-10 w-full max-w-md rounded-lg border border-line bg-cream p-5 text-center">
+        <p className="font-body text-xl font-bold text-ink">How did we do?</p>
         <div className="mt-3 flex items-center justify-center gap-2" role="radiogroup" aria-label="Rate your finished song">
           {[1, 2, 3, 4, 5].map((star) => {
             const active = (hoverRating || rating) >= star;
@@ -174,15 +209,18 @@ const SongReady: React.FC<SongReadyProps> = ({ order, onRatingSaved }) => {
                 type="button"
                 disabled={savingRating}
                 onClick={() => submitRating(star)}
+                onKeyDown={(event) => handleRatingKeyDown(event, star)}
                 onMouseEnter={() => setHoverRating(star)}
                 onMouseLeave={() => setHoverRating(0)}
                 role="radio"
                 aria-checked={rating === star}
+                tabIndex={rating ? (rating === star ? 0 : -1) : star === 1 ? 0 : -1}
+                data-rating={star}
                 aria-label={`Rate ${star} star${star === 1 ? '' : 's'}`}
-                className="rounded-full p-1 text-3xl leading-none transition-colors hover:bg-terracotta-pale disabled:opacity-60"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-3xl leading-none transition-colors hover:bg-terracotta-pale disabled:opacity-60"
               >
                 <span
-                  className={`material-symbols-outlined ${active ? 'text-terracotta' : 'text-ink-muted/40'}`}
+                  className={`material-symbols-outlined ${active ? 'text-terracotta' : 'text-ink-muted'}`}
                   style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
                   aria-hidden="true"
                 >
@@ -227,11 +265,11 @@ const SongReady: React.FC<SongReadyProps> = ({ order, onRatingSaved }) => {
       </div>
 
       {REACTION_FORM_URL && (
-        <div className="mt-10 w-full max-w-md rounded-2xl border border-line bg-cream p-6 text-center">
+        <div className="mt-10 w-full max-w-md rounded-lg border border-line bg-cream p-6 text-center">
           <span className="inline-block rounded-full bg-terracotta-pale px-3 py-1 font-label text-xs font-bold uppercase tracking-[0.14em] text-terracotta-dark">
             Limited time
           </span>
-          <p className="mt-4 font-headline text-2xl font-semibold text-ink">Submit your reaction video</p>
+          <p className="mt-4 font-body text-xl font-bold text-ink">Submit your reaction video</p>
           <p className="mt-2 text-sm leading-6 text-ink-soft">
             If selected, you&apos;ll receive a $50 Amazon gift card.
           </p>

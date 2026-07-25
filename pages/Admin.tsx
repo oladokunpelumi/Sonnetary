@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import BrandLogo from '../components/BrandLogo';
 import { SongPipelinePanel } from '../components/admin/SongPipelinePanel';
 import { formatCurrencyAmount, type Currency } from '../constants';
 
@@ -87,7 +88,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const adminInputClass =
-  'rounded-xl border border-line bg-ivory px-4 py-3 font-body text-sm text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10';
+  'rounded-lg border border-line-control bg-ivory px-4 py-3 font-body text-sm text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10';
 
 const adminActionClass =
   'inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2 font-label text-xs font-bold uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta disabled:cursor-not-allowed disabled:opacity-50';
@@ -185,7 +186,7 @@ const RevealableText: React.FC<{ value: string | null | undefined }> = ({ value 
       <button
         type="button"
         onClick={() => setRevealed(true)}
-        className="flex min-h-28 w-full items-center justify-center rounded-lg border border-dashed border-line bg-cream p-3 text-center font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-muted transition-colors hover:border-terracotta hover:text-terracotta"
+        className="flex min-h-28 w-full items-center justify-center rounded-lg border border-dashed border-line-control bg-cream p-3 text-center font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-muted transition-colors hover:border-terracotta hover:text-terracotta"
         aria-label="Reveal customer message"
       >
         Hidden · click to reveal
@@ -198,7 +199,7 @@ const RevealableText: React.FC<{ value: string | null | undefined }> = ({ value 
       <button
         type="button"
         onClick={() => setRevealed(false)}
-        className="mt-2 block font-label text-[11px] font-bold uppercase tracking-[0.14em] text-ink-muted underline hover:text-terracotta"
+        className="mt-2 inline-flex min-h-8 items-center font-body text-sm font-semibold text-ink-muted underline hover:text-terracotta"
       >
         Hide
       </button>
@@ -231,6 +232,7 @@ const Admin: React.FC = () => {
   const [forceAttachId, setForceAttachId] = useState<string | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const usernameInputRef = useRef<HTMLInputElement | null>(null);
   const [showAllSubscribers, setShowAllSubscribers] = useState(false);
 
   const currentPendingGenerations = useMemo(
@@ -319,9 +321,11 @@ const Admin: React.FC = () => {
       } else {
         const data = await res.json().catch(() => null);
         setLoginError(data?.error || 'Invalid credentials');
+        usernameInputRef.current?.focus();
       }
     } catch {
       setLoginError('An error occurred during log in.');
+      usernameInputRef.current?.focus();
     } finally {
       setIsLoading(false);
     }
@@ -503,8 +507,8 @@ const Admin: React.FC = () => {
 
   if (authenticated === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-ivory">
-        <span className="material-symbols-outlined animate-spin text-4xl text-terracotta">
+      <div role="status" className="flex min-h-screen items-center justify-center bg-ivory">
+        <span className="material-symbols-outlined animate-spin text-4xl text-terracotta" aria-hidden="true">
           progress_activity
         </span>
       </div>
@@ -514,52 +518,60 @@ const Admin: React.FC = () => {
   if (!authenticated) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-ivory px-5 py-12">
-        <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-line bg-cream p-6 shadow-ambient sm:p-9">
+        <div className="relative w-full max-w-md overflow-hidden rounded-lg border border-line bg-cream p-6 shadow-ambient sm:p-9">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-terracotta" />
           <div className="relative mb-8 text-center">
-            <span className="material-symbols-outlined mb-4 block text-4xl text-terracotta">
-              admin_panel_settings
-            </span>
+            <BrandLogo variant="icon" tone="fullColor" className="mx-auto mb-4 h-16 w-16" />
             <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
               Production Workbench
             </p>
-            <h2 className="mt-3 font-headline text-4xl font-medium leading-none text-ink">
+            <h1 className="mt-3 font-body text-3xl font-bold leading-tight text-ink">
               Admin login
-            </h2>
+            </h1>
             <p className="mt-3 font-body text-sm text-ink-soft">Sign in to work on orders</p>
           </div>
 
           <form onSubmit={handleLogin} className="relative space-y-5">
+            <p id="admin-login-help" className="text-sm leading-6 text-ink-muted">
+              Use the production username and password supplied by your administrator.
+            </p>
             {loginError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-600">
+              <div id="admin-login-error" role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
                 {loginError}
               </div>
             )}
             <div>
-              <label className="mb-2 block font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-muted">
+              <label htmlFor="admin-username" className="mb-2 block font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-muted">
                 Username
               </label>
               <input
+                id="admin-username"
+                ref={usernameInputRef}
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className={`w-full ${adminInputClass}`}
                 placeholder="Enter username"
                 autoComplete="username"
+                aria-invalid={Boolean(loginError)}
+                aria-describedby={`${loginError ? 'admin-login-error ' : ''}admin-login-help`}
                 required
               />
             </div>
             <div>
-              <label className="mb-2 block font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-muted">
+              <label htmlFor="admin-password" className="mb-2 block font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-muted">
                 Password
               </label>
               <input
+                id="admin-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`w-full ${adminInputClass}`}
                 placeholder="Password"
                 autoComplete="current-password"
+                aria-invalid={Boolean(loginError)}
+                aria-describedby={`${loginError ? 'admin-login-error ' : ''}admin-login-help`}
                 required
               />
             </div>
@@ -585,21 +597,24 @@ const Admin: React.FC = () => {
     <div className="min-h-screen bg-ivory">
       <header className="sticky top-0 z-10 border-b border-line bg-cream/92 px-5 py-4 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
-              Production Workbench
-            </p>
-            <h1 className="font-headline text-4xl font-medium italic leading-none text-ink">
-              Orders to Work On
-            </h1>
+          <div className="flex items-center gap-4">
+            <BrandLogo variant="icon" tone="fullColor" className="h-12 w-12 shrink-0" />
+            <div>
+              <p className="font-label text-xs font-bold uppercase tracking-[0.18em] text-terracotta">
+                Production Workbench
+              </p>
+              <h1 className="font-body text-2xl font-bold leading-tight text-ink">
+                Orders to Work On
+              </h1>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => fetchData(currentPage)}
-              className="inline-flex items-center gap-2 rounded-full border border-line-strong px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+              className="inline-flex items-center gap-2 rounded-full border border-line-control px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
             >
-              <span className="material-symbols-outlined text-base">refresh</span>
+              <span className="material-symbols-outlined text-base" aria-hidden="true">refresh</span>
               Refresh
             </button>
             <button
@@ -607,17 +622,17 @@ const Admin: React.FC = () => {
               onClick={logout}
               className="inline-flex items-center gap-2 rounded-full border border-red-200 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
             >
-              <span className="material-symbols-outlined text-base">logout</span>
+              <span className="material-symbols-outlined text-base" aria-hidden="true">logout</span>
               Log Out
             </button>
-            <Link to="/" className="rounded-full border border-line-strong px-4 py-2 text-sm font-semibold text-ink-soft hover:border-terracotta hover:text-terracotta">
+            <Link to="/" className="rounded-full border border-line-control px-4 py-2 text-sm font-semibold text-ink-soft hover:border-terracotta hover:text-terracotta">
               Site
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8">
         <section className="grid grid-cols-1 gap-3 md:grid-cols-4">
           {[
             { label: 'Total Orders', value: stats?.totalOrders ?? '-', icon: 'receipt_long' },
@@ -638,9 +653,9 @@ const Admin: React.FC = () => {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="flex items-center gap-3 rounded-xl border border-line bg-cream px-4 py-3"
+              className="flex items-center gap-3 rounded-lg border border-line bg-cream px-4 py-3"
             >
-              <span className="material-symbols-outlined text-xl text-terracotta">{stat.icon}</span>
+              <span className="material-symbols-outlined text-xl text-terracotta" aria-hidden="true">{stat.icon}</span>
               <div>
                 <p className="font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
                   {stat.label}
@@ -651,10 +666,10 @@ const Admin: React.FC = () => {
           ))}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-line bg-cream">
+        <section className="overflow-hidden rounded-lg border border-line bg-cream">
           <div className="flex flex-col gap-4 border-b border-line px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="font-headline text-3xl font-medium leading-none text-ink">Promo Codes</h2>
+              <h2 className="font-body text-xl font-bold leading-tight text-ink">Promo codes</h2>
               <p className="mt-1 text-sm text-ink-soft">
                 Generate one-time 100% off codes for free orders.
               </p>
@@ -678,7 +693,7 @@ const Admin: React.FC = () => {
                 Newly generated
               </p>
               <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <code className="rounded-xl border border-sage-soft bg-cream px-4 py-3 font-mono text-sm font-bold text-ink">
+                <code className="rounded-lg border border-sage-soft bg-cream px-4 py-3 font-mono text-sm font-bold text-ink">
                   {generatedPromoCode}
                 </code>
                 <button
@@ -686,7 +701,7 @@ const Admin: React.FC = () => {
                   onClick={() => handleCopyPromoCode(generatedPromoCode)}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 font-label text-xs font-bold uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta"
                 >
-                  <span className="material-symbols-outlined text-base">content_copy</span>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
                   Copy Code
                 </button>
               </div>
@@ -710,7 +725,7 @@ const Admin: React.FC = () => {
                             ? 'border-sage-soft bg-sage-pale text-sage-dark'
                             : isDisabled
                               ? 'border-red-200 bg-red-50 text-red-700'
-                              : 'border-mustard-soft bg-mustard-pale text-[#6F521F]'
+                              : 'border-mustard-soft bg-mustard-pale text-gold-readable'
                         }`}>
                           {isUsed ? 'used' : isDisabled ? 'disabled' : 'unused'}
                         </span>
@@ -727,9 +742,9 @@ const Admin: React.FC = () => {
                       type="button"
                       onClick={() => handleDisablePromoCode(code.id)}
                       disabled={isUsed || isDisabled || disablingPromoId === code.id}
-                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-line-strong px-4 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-45"
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-line-control px-4 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta disabled:cursor-not-allowed disabled:opacity-45"
                     >
-                      <span className="material-symbols-outlined text-base">block</span>
+                      <span className="material-symbols-outlined text-base" aria-hidden="true">block</span>
                       Disable
                     </button>
                   </div>
@@ -739,10 +754,10 @@ const Admin: React.FC = () => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-line bg-cream">
+        <section className="overflow-hidden rounded-lg border border-line bg-cream">
           <div className="flex flex-col gap-4 border-b border-line px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="font-headline text-3xl font-medium leading-none text-ink">
+              <h2 className="font-body text-xl font-bold leading-tight text-ink">
                 Email subscribers
               </h2>
               <p className="mt-1 text-sm text-ink-soft">
@@ -766,7 +781,7 @@ const Admin: React.FC = () => {
                 disabled={subscribers.length === 0}
                 className={adminActionClass}
               >
-                <span className="material-symbols-outlined text-sm">download</span>
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>
                 Export CSV
               </button>
             </div>
@@ -820,10 +835,10 @@ const Admin: React.FC = () => {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-line bg-cream">
+        <section className="overflow-hidden rounded-lg border border-line bg-cream">
           <div className="flex flex-col gap-4 border-b border-line px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="font-headline text-3xl font-medium leading-none text-ink">Order Queue</h2>
+              <h2 className="font-body text-xl font-bold leading-tight text-ink">Order queue</h2>
               <p className="mt-1 text-sm text-ink-soft">
                 Expand an order to review the brief, export JSON, or generate the production brief.
               </p>
@@ -859,27 +874,28 @@ const Admin: React.FC = () => {
                 onClick={handleExportQueue}
                 className={adminActionClass}
               >
-                <span className="material-symbols-outlined text-base">download</span>
+                <span className="material-symbols-outlined text-base" aria-hidden="true">download</span>
                 Export Queue JSON
               </button>
             </div>
           </div>
 
           {adminMessage && (
-            <div role="status" className="border-b border-line bg-mustard-pale px-5 py-3 text-sm font-medium text-[#6F521F]">
+            <div role="status" className="border-b border-line bg-mustard-pale px-5 py-3 text-sm font-medium text-gold-readable">
               {adminMessage}
             </div>
           )}
 
           {isLoading ? (
-            <div className="flex items-center justify-center p-16">
-              <span className="material-symbols-outlined animate-spin text-3xl text-terracotta">
+            <div role="status" className="flex items-center justify-center gap-3 p-16 text-sm text-ink-muted">
+              <span className="material-symbols-outlined animate-spin text-3xl text-terracotta" aria-hidden="true">
                 progress_activity
               </span>
+              Loading orders...
             </div>
           ) : orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 p-16 text-ink-muted">
-              <span className="material-symbols-outlined text-4xl">inbox</span>
+              <span className="material-symbols-outlined text-4xl" aria-hidden="true">inbox</span>
               <p>No orders match this view</p>
             </div>
           ) : (
@@ -902,8 +918,8 @@ const Admin: React.FC = () => {
                         onClick={() => setExpandedId(isExpanded ? null : order.id)}
                         className="flex min-w-0 flex-1 items-center gap-4 text-left"
                       >
-                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-mustard-pale">
-                          <span className="material-symbols-outlined text-mustard">music_note</span>
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-mustard-pale">
+                          <span className="material-symbols-outlined text-mustard" aria-hidden="true">music_note</span>
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
@@ -918,7 +934,7 @@ const Admin: React.FC = () => {
                                 ? 'bg-sage-pale text-sage-dark'
                                 : generationStatus === 'failed' || generationStatus === 'needs_human_review'
                                   ? 'bg-red-50 text-red-700'
-                                  : 'bg-mustard-pale text-[#6F521F]'
+                                  : 'bg-mustard-pale text-gold-readable'
                             }`}>
                               {labelize(generationStatus)}
                             </span>
@@ -939,10 +955,11 @@ const Admin: React.FC = () => {
                           {formatCurrencyAmount(order.currency, order.amount)}
                         </span>
                         <select
+                          aria-label={`Order status for ${order.song_title || order.id}`}
                           value={order.status}
                           onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
                           disabled={updatingId === order.id}
-                          className="rounded-lg border border-line bg-ivory px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/20 disabled:opacity-50"
+                          className="rounded-lg border border-line-control bg-ivory px-3 py-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/20 disabled:opacity-50"
                         >
                           <option value="in_production">In Production</option>
                           <option value="completed">Completed</option>
@@ -951,18 +968,18 @@ const Admin: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleExportOrder(order)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-line-strong px-3 py-2 text-xs font-bold text-ink-soft hover:border-terracotta hover:text-terracotta"
+                          className="inline-flex items-center gap-1 rounded-lg border border-line-control px-3 py-2 text-xs font-bold text-ink-soft hover:border-terracotta hover:text-terracotta"
                         >
-                          <span className="material-symbols-outlined text-sm">download</span>
+                          <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>
                           JSON
                         </button>
                         <button
                           type="button"
                           onClick={() => setExpandedId(isExpanded ? null : order.id)}
-                          className="flex size-9 items-center justify-center rounded-lg border border-line-strong text-ink-muted hover:text-ink"
+                          className="flex size-11 items-center justify-center rounded-lg border border-line-control text-ink-muted hover:text-ink"
                           aria-label={isExpanded ? 'Collapse order' : 'Expand order'}
                         >
-                          <span className="material-symbols-outlined text-base">
+                          <span className="material-symbols-outlined text-base" aria-hidden="true">
                             {isExpanded ? 'expand_less' : 'expand_more'}
                           </span>
                         </button>
@@ -970,7 +987,7 @@ const Admin: React.FC = () => {
                     </div>
 
                     {isExpanded && (
-                      <div className="mt-4 rounded-xl border border-line bg-ivory p-4 text-sm">
+                      <div className="mt-4 rounded-lg border border-line bg-ivory p-4 text-sm">
                         <div className="grid gap-3 border-b border-line pb-4 md:grid-cols-3">
                           {[
                             ['For', order.recipient_type],
@@ -1029,7 +1046,7 @@ const Admin: React.FC = () => {
 
                         <div className="mt-4 border-t border-line pt-4">
                           <div className="mb-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-base text-sage">album</span>
+                            <span className="material-symbols-outlined text-base text-sage" aria-hidden="true">album</span>
                             <span className="font-label text-xs font-bold uppercase tracking-[0.14em] text-sage-dark">
                               Final song
                             </span>
@@ -1048,7 +1065,9 @@ const Admin: React.FC = () => {
                             </p>
                           )}
                           <div className="flex flex-col gap-2 sm:flex-row">
+                            <label className="sr-only" htmlFor={`final-song-url-${order.id}`}>Finished song URL</label>
                             <input
+                              id={`final-song-url-${order.id}`}
                               type="url"
                               placeholder="Paste finished song URL (mp3/wav)"
                               value={songInputs[order.id]?.url || ''}
@@ -1060,7 +1079,9 @@ const Admin: React.FC = () => {
                               }
                               className={`flex-1 ${adminInputClass}`}
                             />
+                            <label className="sr-only" htmlFor={`final-song-title-${order.id}`}>Final song title (optional)</label>
                             <input
+                              id={`final-song-title-${order.id}`}
                               type="text"
                               placeholder="Final title (optional)"
                               value={songInputs[order.id]?.title || ''}
@@ -1088,7 +1109,7 @@ const Admin: React.FC = () => {
                               disabled={attachingSongId === order.id}
                               className="mt-2 inline-flex items-center gap-1 rounded-full border border-red-300 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-60"
                             >
-                              <span className="material-symbols-outlined text-sm">warning</span>
+                              <span className="material-symbols-outlined text-sm" aria-hidden="true">warning</span>
                               Attach anyway (skip URL check)
                             </button>
                           )}
@@ -1107,7 +1128,7 @@ const Admin: React.FC = () => {
                             disabled={deletingOrderId === order.id}
                             className="inline-flex items-center gap-1 rounded-full border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            <span className="material-symbols-outlined text-sm">delete</span>
+                            <span className="material-symbols-outlined text-sm" aria-hidden="true">delete</span>
                             {deletingOrderId === order.id ? 'Deleting...' : 'Delete order'}
                           </button>
                         </div>
@@ -1129,7 +1150,7 @@ const Admin: React.FC = () => {
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={!pagination.hasPrev}
-                  className="rounded-lg border border-line bg-ivory px-3 py-1.5 text-sm text-ink transition-colors hover:border-terracotta disabled:opacity-40"
+                  className="rounded-lg border border-line-control bg-ivory px-3 py-1.5 text-sm text-ink transition-colors hover:border-terracotta disabled:opacity-40"
                 >
                   Prev
                 </button>
@@ -1137,7 +1158,7 @@ const Admin: React.FC = () => {
                   type="button"
                   onClick={() => setCurrentPage((p) => p + 1)}
                   disabled={!pagination.hasNext}
-                  className="rounded-lg border border-line bg-ivory px-3 py-1.5 text-sm text-ink transition-colors hover:border-terracotta disabled:opacity-40"
+                  className="rounded-lg border border-line-control bg-ivory px-3 py-1.5 text-sm text-ink transition-colors hover:border-terracotta disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -1145,7 +1166,7 @@ const Admin: React.FC = () => {
             </div>
           )}
         </section>
-      </main>
+      </div>
     </div>
   );
 };

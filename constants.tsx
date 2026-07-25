@@ -65,7 +65,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Celebratory',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   anniversary: {
     label: 'Anniversary',
@@ -93,7 +93,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Warm grateful',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   apology: {
     label: 'Apology',
@@ -114,7 +114,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Proud aspirational',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   proposal: {
     label: 'Proposal',
@@ -135,7 +135,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Spontaneous heartfelt',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   other: {
     label: 'Other',

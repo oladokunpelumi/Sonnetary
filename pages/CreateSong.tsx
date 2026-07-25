@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Currency, OCCASION_ACCENTS, PaymentProvider, getDiscountedPriceByCurrency } from '../constants';
 import { fetchCheckoutConfig } from '../services/checkoutProvider';
@@ -91,7 +91,7 @@ const FORM_STEPS = [
 ];
 
 const fieldClass =
-  'w-full rounded-xl border border-line bg-ivory px-4 py-3.5 font-body text-base text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10';
+  'w-full rounded-lg border border-line-control bg-ivory px-4 py-3.5 font-body text-base text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10';
 
 const BRIEF_STORAGE_KEY = 'yourgbedu_brief';
 const DRAFT_STORAGE_KEY = 'yourgbedu_brief_draft';
@@ -189,11 +189,27 @@ const CreateSong: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  const recipientGroupRef = useRef<HTMLFieldSetElement | null>(null);
+  const recipientNameRef = useRef<HTMLInputElement | null>(null);
+  const occasionGroupRef = useRef<HTMLFieldSetElement | null>(null);
+  const senderNameRef = useRef<HTMLInputElement | null>(null);
+  const genreGroupRef = useRef<HTMLFieldSetElement | null>(null);
+  const voiceGroupRef = useRef<HTMLFieldSetElement | null>(null);
+  const specialQualitiesRef = useRef<HTMLTextAreaElement | null>(null);
+  const favoriteMemoriesRef = useRef<HTMLTextAreaElement | null>(null);
+  const specialMessageRef = useRef<HTMLTextAreaElement | null>(null);
+  const customerEmailRef = useRef<HTMLInputElement | null>(null);
   const [paymentProvider, setPaymentProvider] = useState<PaymentProvider | null>(null);
   const [currency, setCurrency] = useState<Currency | null>(null);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const selectedPersona =
     RECIPIENT_QUERY_MAP[(searchParams.get('recipient') || '').toLowerCase()] || '';
+
+  const reportError = useCallback((message: string, target: { current: HTMLElement | null }) => {
+    setError(message);
+    window.setTimeout(() => target.current?.focus(), 0);
+  }, []);
   const draftData = useMemo<CreateSongDraft>(() => ({
     recipientType,
     recipientName,
@@ -311,24 +327,40 @@ const CreateSong: React.FC = () => {
 
   const nextStep = () => {
     setError(null);
-    if (step === 1 && (!recipientType || !occasion || !senderName.trim())) {
-      setError('Please select who this is for, choose an occasion, and enter your name.');
+    if (step === 1 && !recipientType) {
+      reportError('Select who the song is for.', recipientGroupRef);
       return;
     }
     if (step === 1 && recipientType && recipientType !== 'Yourself' && !recipientName.trim()) {
-      setError("Please add the recipient's name so we can write the song for them.");
+      reportError("Add the recipient's name so we can write the song for them.", recipientNameRef);
       return;
     }
-    if (step === 2 && !isStepTwoComplete()) {
-      setError('Please select both a genre and voice preference.');
+    if (step === 1 && !occasion) {
+      reportError('Choose the occasion for this song.', occasionGroupRef);
       return;
     }
-    if (step === 3 && !isStepThreeComplete()) {
-      setError('Please provide a few details for both questions to help us write the best song.');
+    if (step === 1 && !senderName.trim()) {
+      reportError('Enter your name so we know who the song is from.', senderNameRef);
+      return;
+    }
+    if (step === 2 && !genre) {
+      reportError('Select a genre for the song.', genreGroupRef);
+      return;
+    }
+    if (step === 2 && !voiceGender) {
+      reportError('Select a voice preference.', voiceGroupRef);
+      return;
+    }
+    if (step === 3 && specialQualities.trim().length < 5) {
+      reportError('Add a few details about what makes them special.', specialQualitiesRef);
+      return;
+    }
+    if (step === 3 && favoriteMemories.trim().length < 5) {
+      reportError('Add at least one favorite memory.', favoriteMemoriesRef);
       return;
     }
     if (step === 4 && !isStepFourComplete()) {
-      setError('Please write a special message from your heart.');
+      reportError('Write a special message of at least five characters.', specialMessageRef);
       return;
     }
     navigateToStep(step + 1);
@@ -342,7 +374,7 @@ const CreateSong: React.FC = () => {
   const handleCompleteBrief = () => {
     if (step !== 5) return;
     if (!customerEmail || !customerEmail.includes('@')) {
-      setError('Please enter a valid email address to receive your song.');
+      reportError('Enter a valid email address to receive your song.', customerEmailRef);
       return;
     }
     if (!paymentProvider || !currency) {
@@ -388,11 +420,11 @@ const CreateSong: React.FC = () => {
   return (
     <div className="bg-ivory px-5 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="hidden self-start rounded-2xl border border-line bg-cream p-6 lg:block" aria-label="Song brief steps">
+        <aside className="hidden self-start rounded-lg border border-line bg-cream p-6 lg:block" aria-label="Song brief steps">
           <p className="editorial-kicker">YourGbedu brief</p>
-          <h2 className="mt-4 font-headline text-4xl font-medium leading-none text-ink">
+          <p className="mt-4 font-headline text-4xl font-medium leading-none text-ink">
             Create your <em className="text-terracotta">song</em>
-          </h2>
+          </p>
           <p className="mt-4 text-sm leading-6 text-ink-soft">
             Each step feeds the production team a clearer emotional map.
           </p>
@@ -404,7 +436,7 @@ const CreateSong: React.FC = () => {
               return (
                 <li
                   key={item.id}
-                  className={`flex gap-3 rounded-xl border p-3 ${
+                  className={`flex gap-3 rounded-lg border p-3 ${
                     isActive
                       ? 'border-terracotta bg-terracotta-pale'
                       : isComplete
@@ -440,7 +472,7 @@ const CreateSong: React.FC = () => {
           </ol>
         </aside>
 
-        <section className="rounded-2xl border border-line bg-cream p-5 sm:p-8 lg:p-10">
+        <section className="border-y border-line bg-cream p-5 sm:p-8 lg:p-10">
           <div className="mb-8 border-b border-line pb-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -453,7 +485,7 @@ const CreateSong: React.FC = () => {
                 <p className="mt-4 max-w-2xl text-base leading-7 text-ink-soft">{currentStep.desc}</p>
               </div>
               {nextStepMeta && (
-                <div className="rounded-2xl border border-line bg-ivory p-4 sm:max-w-[240px] lg:hidden">
+                <div className="rounded-lg border border-line bg-ivory p-4 sm:max-w-[240px] lg:hidden">
                   <p className="font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
                     Next
                   </p>
@@ -474,7 +506,7 @@ const CreateSong: React.FC = () => {
             {step === 1 && (
               <div className="space-y-8">
                 {selectedPersona && (
-                  <div className="rounded-2xl border border-terracotta/30 bg-terracotta-pale p-4 text-terracotta-dark">
+                  <div className="rounded-lg border border-terracotta/30 bg-terracotta-pale p-4 text-terracotta-dark">
                     <p className="font-label text-xs font-bold uppercase tracking-[0.16em]">
                       Selected path
                     </p>
@@ -485,10 +517,15 @@ const CreateSong: React.FC = () => {
                   </div>
                 )}
 
-                <div>
-                  <p className="mb-3 font-headline text-2xl font-semibold text-ink">
-                    Who is this for?
-                  </p>
+                <fieldset
+                  ref={recipientGroupRef}
+                  tabIndex={-1}
+                  aria-invalid={Boolean(error && !recipientType)}
+                  aria-describedby={error ? 'create-step-error' : undefined}
+                >
+                  <legend className="mb-3 font-body text-xl font-bold text-ink">
+                    Who is this for? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
+                  </legend>
                   <div className="flex flex-wrap gap-2">
                     {RECIPIENTS.map((r) => (
                       <button
@@ -502,7 +539,7 @@ const CreateSong: React.FC = () => {
                         className={`rounded-full border px-4 py-2.5 font-label text-sm font-bold transition-colors ${
                           recipientType === r
                             ? 'border-terracotta bg-terracotta text-cream'
-                            : 'border-line bg-ivory text-ink-soft hover:border-terracotta hover:text-terracotta'
+                            : 'border-line-control bg-ivory text-ink-soft hover:border-terracotta hover:text-terracotta'
                         }`}
                       >
                         {r}
@@ -512,34 +549,41 @@ const CreateSong: React.FC = () => {
                   {recipientType && recipientType !== 'Yourself' && (
                     <div className="mt-5">
                       <label htmlFor="recipient-name" className="mb-2 block font-label text-sm font-bold text-ink">
-                        What is their name?
+                        What is their name? <span className="text-sm text-terracotta">Required</span>
                       </label>
                       <input
                         id="recipient-name"
+                        ref={recipientNameRef}
                         type="text"
+                        required
+                        aria-invalid={Boolean(error && !recipientName.trim())}
+                        aria-describedby={`recipient-name-help${error ? ' create-step-error' : ''}`}
                         value={recipientName}
                         onChange={(e) => setRecipientName(e.target.value)}
                         placeholder={`Their first name`}
                         className={fieldClass}
                       />
-                      <p className="mt-2 text-xs leading-5 text-ink-muted">
+                      <p id="recipient-name-help" className="mt-2 text-sm leading-6 text-ink-muted">
                         We will weave this into the lyrics so the song feels written for them.
                       </p>
                     </div>
                   )}
-                </div>
+                </fieldset>
 
-                <div>
-                  <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <p className="font-headline text-2xl font-semibold text-ink">
-                      What is the occasion?
+                <fieldset
+                  ref={occasionGroupRef}
+                  tabIndex={-1}
+                  aria-invalid={Boolean(error && !occasion)}
+                  aria-describedby={error ? 'create-step-error' : undefined}
+                >
+                  <legend className="mb-2 font-body text-xl font-bold text-ink">
+                    What is the occasion? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
+                  </legend>
+                  {occasion && (
+                    <p className="mb-3 font-label text-xs font-bold uppercase tracking-[0.12em]" style={{ color: activeOccasion.text }}>
+                      {activeOccasion.tone}
                     </p>
-                    {occasion && (
-                      <p className="font-label text-xs font-bold uppercase tracking-[0.12em]" style={{ color: activeOccasion.text }}>
-                        {activeOccasion.tone}
-                      </p>
-                    )}
-                  </div>
+                  )}
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {OCCASIONS.map((item) => {
                       const accent = OCCASION_ACCENTS[item.value];
@@ -553,14 +597,20 @@ const CreateSong: React.FC = () => {
                             if (item.value !== 'other') setOccasionDetail('');
                           }}
                           aria-pressed={selected}
-                          className="rounded-2xl border px-4 py-3 text-left transition-colors"
-                          style={{
-                            backgroundColor: selected ? accent.accent : '#FAF6EE',
-                            borderColor: selected ? accent.accent : '#E5DDD0',
-                            color: selected ? '#FFFDF6' : '#1F1B14',
-                          }}
+                          className={`rounded-lg border px-4 py-3 text-left transition-colors ${
+                            selected
+                              ? 'border-ink bg-ink text-cream'
+                              : 'border-line-control bg-ivory text-ink hover:border-terracotta'
+                          }`}
                         >
-                          <span className="block font-label text-sm font-bold">{item.label}</span>
+                          <span className="flex items-center gap-2 font-label text-sm font-bold">
+                            <span
+                              className="h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: accent.accent }}
+                              aria-hidden="true"
+                            />
+                            {item.label}
+                          </span>
                           <span className="mt-1 block text-xs opacity-75">{accent.tone}</span>
                         </button>
                       );
@@ -569,7 +619,7 @@ const CreateSong: React.FC = () => {
                   {occasion === 'other' && (
                     <div className="mt-4">
                       <label htmlFor="occasion-detail" className="mb-2 block font-label text-sm font-bold text-ink">
-                        Tell us the occasion
+                        Tell us the occasion <span className="text-sm font-normal text-ink-muted">Optional</span>
                       </label>
                       <input
                         id="occasion-detail"
@@ -581,15 +631,19 @@ const CreateSong: React.FC = () => {
                       />
                     </div>
                   )}
-                </div>
+                </fieldset>
 
                 <div>
-                  <label htmlFor="sender-name" className="mb-2 block font-headline text-2xl font-semibold text-ink">
-                    What is your name?
+                  <label htmlFor="sender-name" className="mb-2 block font-body text-xl font-bold text-ink">
+                    What is your name? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
                   </label>
                   <input
                     id="sender-name"
+                    ref={senderNameRef}
                     type="text"
+                    required
+                    aria-invalid={Boolean(error && !senderName.trim())}
+                    aria-describedby={error ? 'create-step-error' : undefined}
                     value={senderName}
                     onChange={(e) => setSenderName(e.target.value)}
                     placeholder="Enter your name"
@@ -601,10 +655,15 @@ const CreateSong: React.FC = () => {
 
             {step === 2 && (
               <div className="space-y-9">
-                <div>
-                  <p className="mb-3 font-headline text-2xl font-semibold text-ink">
-                    Choose a genre
-                  </p>
+                <fieldset
+                  ref={genreGroupRef}
+                  tabIndex={-1}
+                  aria-invalid={Boolean(error && !genre)}
+                  aria-describedby={error ? 'create-step-error' : undefined}
+                >
+                  <legend className="mb-3 font-body text-xl font-bold text-ink">
+                    Choose a genre <span className="font-body text-sm font-semibold text-terracotta">Required</span>
+                  </legend>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {NEW_GENRES.map((g) => (
                       <button
@@ -612,25 +671,30 @@ const CreateSong: React.FC = () => {
                         key={g.name}
                         onClick={() => setGenre(g.name)}
                         aria-pressed={genre === g.name}
-                        className={`rounded-2xl border p-4 text-left transition-colors ${
+                        className={`rounded-lg border p-4 text-left transition-colors ${
                           genre === g.name
                             ? 'border-terracotta bg-terracotta text-cream'
-                            : 'border-line bg-ivory text-ink hover:border-terracotta'
+                            : 'border-line-control bg-ivory text-ink hover:border-terracotta'
                         }`}
                       >
-                        <span className="block font-headline text-2xl italic leading-none">{g.name}</span>
-                        <span className={`mt-2 block font-label text-xs font-bold uppercase tracking-[0.14em] ${genre === g.name ? 'text-terracotta-soft' : 'text-ink-muted'}`}>
+                        <span className="block font-body text-lg font-bold leading-tight">{g.name}</span>
+                        <span className={`mt-2 block font-label text-xs font-bold uppercase tracking-[0.14em] ${genre === g.name ? 'text-cream/85' : 'text-ink-muted'}`}>
                           {g.desc}
                         </span>
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
-                <div>
-                  <p className="mb-3 font-headline text-2xl font-semibold text-ink">
-                    Preferred voice
-                  </p>
+                <fieldset
+                  ref={voiceGroupRef}
+                  tabIndex={-1}
+                  aria-invalid={Boolean(error && !voiceGender)}
+                  aria-describedby={error ? 'create-step-error' : undefined}
+                >
+                  <legend className="mb-3 font-body text-xl font-bold text-ink">
+                    Preferred voice <span className="font-body text-sm font-semibold text-terracotta">Required</span>
+                  </legend>
                   <div className="flex flex-wrap gap-3">
                     {VOICES.map((v) => (
                       <button
@@ -641,28 +705,31 @@ const CreateSong: React.FC = () => {
                         className={`rounded-full border px-5 py-3 font-label text-sm font-bold transition-colors ${
                           voiceGender === v
                             ? 'border-ink bg-ink text-cream'
-                            : 'border-line bg-ivory text-ink-soft hover:border-terracotta hover:text-terracotta'
+                            : 'border-line-control bg-ivory text-ink-soft hover:border-terracotta hover:text-terracotta'
                         }`}
                       >
                         {v}
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
               </div>
             )}
 
             {step === 3 && (
               <div className="space-y-7">
                 <div>
-                  <label htmlFor="special-qualities" className="mb-2 block font-headline text-2xl font-semibold text-ink">
-                    What makes them special?
+                  <label htmlFor="special-qualities" className="mb-2 block font-body text-xl font-bold text-ink">
+                    What makes them special? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
                   </label>
                   <p className="mb-3 text-sm leading-6 text-ink-muted">
                     Describe their character and the qualities you love most.
                   </p>
                   <textarea
                     id="special-qualities"
+                    ref={specialQualitiesRef}
+                    aria-invalid={Boolean(error && specialQualities.trim().length < 5)}
+                    aria-describedby={error ? 'create-step-error' : undefined}
                     className={`${fieldClass} min-h-[170px] resize-y leading-7`}
                     placeholder="They are calm when everything is falling apart..."
                     value={specialQualities}
@@ -670,14 +737,17 @@ const CreateSong: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="favorite-memories" className="mb-2 block font-headline text-2xl font-semibold text-ink">
-                    Share your favorite memories
+                  <label htmlFor="favorite-memories" className="mb-2 block font-body text-xl font-bold text-ink">
+                    Share your favorite memories <span className="font-body text-sm font-semibold text-terracotta">Required</span>
                   </label>
                   <p className="mb-3 text-sm leading-6 text-ink-muted">
                     What moments with them do you treasure most?
                   </p>
                   <textarea
                     id="favorite-memories"
+                    ref={favoriteMemoriesRef}
+                    aria-invalid={Boolean(error && favoriteMemories.trim().length < 5)}
+                    aria-describedby={error ? 'create-step-error' : undefined}
                     className={`${fieldClass} min-h-[170px] resize-y leading-7`}
                     placeholder="Our first date, the long calls, the day everything changed..."
                     value={favoriteMemories}
@@ -689,14 +759,17 @@ const CreateSong: React.FC = () => {
 
             {step === 4 && (
               <div>
-                <label htmlFor="special-message" className="mb-2 block font-headline text-2xl font-semibold text-ink">
-                  What should the song say?
+                <label htmlFor="special-message" className="mb-2 block font-body text-xl font-bold text-ink">
+                  What should the song say? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
                 </label>
                 <p className="mb-4 text-sm leading-6 text-ink-muted">
                   Add the words you want included, even if they are rough. Emotion matters more than polish.
                 </p>
                 <textarea
                   id="special-message"
+                  ref={specialMessageRef}
+                  aria-invalid={Boolean(error && specialMessage.trim().length < 5)}
+                  aria-describedby={error ? 'create-step-error' : undefined}
                   className={`${fieldClass} min-h-[320px] resize-y text-lg leading-8`}
                   placeholder="I do not say it enough, but you are the reason I am still standing..."
                   value={specialMessage}
@@ -707,7 +780,7 @@ const CreateSong: React.FC = () => {
 
             {step === 5 && (
               <div className="space-y-7">
-                <div className="rounded-2xl border border-line bg-ivory p-5 sm:p-7">
+                <div className="rounded-lg border border-line bg-ivory p-5 sm:p-7">
                   <h3 className="font-headline text-4xl font-semibold leading-none text-ink">
                     Your song brief
                   </h3>
@@ -727,7 +800,7 @@ const CreateSong: React.FC = () => {
                       { label: 'Style', value: genre },
                       { label: 'Voice', value: voiceGender },
                     ].map((item) => (
-                      <div key={item.label} className="rounded-xl border border-line bg-cream p-4">
+                      <div key={item.label} className="rounded-lg border border-line bg-cream p-4">
                         <p className="font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
                           {item.label}
                         </p>
@@ -738,7 +811,7 @@ const CreateSong: React.FC = () => {
 
                   <button
                     type="button"
-                    className="mt-6 flex w-full items-center justify-between gap-5 rounded-2xl border border-line bg-cream p-5 text-left transition-colors hover:border-terracotta"
+                    className="mt-6 flex w-full items-center justify-between gap-5 rounded-lg border border-line-control bg-cream p-5 text-left transition-colors hover:border-terracotta"
                     onClick={() => setIsFastDelivery(!isFastDelivery)}
                     aria-pressed={isFastDelivery}
                   >
@@ -755,7 +828,7 @@ const CreateSong: React.FC = () => {
                     </span>
                     <span
                       className={`relative h-8 w-14 shrink-0 rounded-full border transition-colors ${
-                        isFastDelivery ? 'border-terracotta bg-terracotta' : 'border-line-strong bg-ivory'
+                        isFastDelivery ? 'border-terracotta bg-terracotta' : 'border-line-control bg-ivory'
                       }`}
                     >
                       <span
@@ -768,23 +841,28 @@ const CreateSong: React.FC = () => {
 
                   <div className="mt-6">
                     <label htmlFor="customer-email" className="mb-2 block font-label text-sm font-bold text-ink">
-                      Where should we send your completed song? <span className="text-terracotta">*</span>
+                      Where should we send your completed song? <span className="text-terracotta">Required</span>
                     </label>
                     <input
                       id="customer-email"
+                      ref={customerEmailRef}
                       type="email"
+                      autoComplete="email"
+                      aria-invalid={Boolean(error && (!customerEmail || !customerEmail.includes('@')))}
+                      aria-describedby="customer-email-help"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       placeholder="you@email.com"
                       required
                       className={fieldClass}
                     />
+                    <p id="customer-email-help" className="mt-2 text-sm leading-6 text-ink-muted">Use an address you can access for delivery and secure order tracking.</p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-ink p-6 text-cream">
+                <div className="rounded-lg bg-ink p-6 text-cream">
                   {isDetectingLocation ? (
-                    <div className="flex items-center gap-2">
+                    <div role="status" className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-lg text-mustard animate-spin" aria-hidden="true">
                         progress_activity
                       </span>
@@ -793,10 +871,10 @@ const CreateSong: React.FC = () => {
                   ) : (
                     <>
                       <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-headline text-4xl font-semibold text-mustard">
+                        <span className="font-mono text-3xl font-bold text-mustard-soft">
                           {price.current}
                         </span>
-                        <span className="text-sm text-cream/35 line-through">{price.original}</span>
+                        <span className="text-sm text-cream/55 line-through">{price.original}</span>
                         <span className="rounded-full bg-mustard px-3 py-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
                           Discounted
                         </span>
@@ -806,7 +884,7 @@ const CreateSong: React.FC = () => {
                           ? `We build and deliver your song in 24 hours - secure payment via ${providerLabel}.`
                           : `We build and deliver your song in 48 hours - secure payment via ${providerLabel}.`}
                       </p>
-                      <p className="mt-3 border-t border-cream/10 pt-3 text-xs leading-5 text-cream/50">
+                      <p className="mt-3 border-t border-cream/10 pt-3 text-sm leading-6 text-cream/60">
                         Your brief is saved in this browser until payment starts, so you can return
                         and edit it before checkout.
                       </p>
@@ -817,7 +895,7 @@ const CreateSong: React.FC = () => {
             )}
 
             {error && (
-              <div role="alert" className="mt-7 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+              <div id="create-step-error" ref={errorRef} tabIndex={-1} role="alert" className="mt-7 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                 {error}
               </div>
             )}

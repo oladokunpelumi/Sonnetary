@@ -157,7 +157,7 @@ const PaymentSuccess: React.FC = () => {
   if (!hasReference || status === 'creating' || status === 'error') {
     const isError = !hasReference || status === 'error';
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center bg-ivory px-6 py-24 text-center">
+      <div role={isError ? 'alert' : 'status'} className="flex min-h-[80vh] flex-col items-center justify-center bg-ivory px-6 py-24 text-center">
         <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isError ? 'bg-red-50 text-red-600' : 'bg-terracotta-pale text-terracotta'}`}>
           <span className={`material-symbols-outlined text-5xl ${status === 'creating' ? 'animate-spin' : ''}`} aria-hidden="true">
             {isError ? 'error' : 'progress_activity'}
@@ -187,7 +187,7 @@ const PaymentSuccess: React.FC = () => {
 
   return (
     <div className="bg-ivory px-5 py-12 sm:px-8 lg:px-12">
-      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-[1.5rem] border border-line bg-cream lg:grid-cols-[1fr_0.8fr]">
+      <div className="mx-auto grid max-w-6xl overflow-hidden border-y border-line bg-cream lg:grid-cols-[1fr_0.8fr]">
         <div className="p-6 sm:p-10 lg:p-14">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sage-pale text-sage-dark">
             <span className="material-symbols-outlined text-5xl" aria-hidden="true">
@@ -202,7 +202,7 @@ const PaymentSuccess: React.FC = () => {
             and will open your order tracker shortly.
           </p>
 
-          <div className="mt-8 max-w-lg rounded-2xl border border-line bg-ivory p-5">
+          <div className="mt-8 max-w-lg border-y border-line py-3">
             {[
               ['Order ID', `${orderId?.slice(0, 8).toUpperCase()}...`],
               ['Amount paid', amountPaid],
@@ -227,7 +227,7 @@ const PaymentSuccess: React.FC = () => {
             </Link>
             <Link
               to="/"
-              className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-strong px-7 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-control px-7 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
             >
               Home
             </Link>
@@ -239,7 +239,7 @@ const PaymentSuccess: React.FC = () => {
           alt="A YourGbedu production scene"
           loading="lazy"
           decoding="async"
-          className="hidden h-full min-h-[520px] w-full object-cover sepia-[0.12] lg:block"
+          className="hidden h-full min-h-[520px] w-full object-cover lg:block"
         />
       </div>
     </div>

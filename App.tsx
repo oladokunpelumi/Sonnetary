@@ -10,6 +10,9 @@ import PaymentCancel from './pages/PaymentCancel';
 import Verify from './pages/Verify';
 import { Song } from './types';
 import { PlayerContext, PlayerContextType } from './contexts/PlayerContext';
+import { OverlayProvider } from './contexts/OverlayContext';
+import { getRouteMeta } from './lib/route-meta';
+import { analyticsConfigured, getConsent, resetConsent } from './services/analytics';
 
 const CreateSong = lazy(() => import('./pages/CreateSong'));
 const OrderStatus = lazy(() => import('./pages/OrderStatus'));
@@ -17,6 +20,7 @@ const Library = lazy(() => import('./pages/Library'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Checkout = lazy(() => import('./pages/Checkout'));
+const Privacy = lazy(() => import('./pages/Privacy'));
 
 const PREVIEW_LIMIT_SECONDS = 30;
 const DIRECT_HASH_ROUTES = new Set([
@@ -29,6 +33,7 @@ const DIRECT_HASH_ROUTES = new Set([
   '/checkout',
   '/checkout/return',
   '/verify',
+  '/privacy',
 ]);
 
 function normalizeDirectHashRoute() {
@@ -57,11 +62,27 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.7);
+  const [isConsentVisible, setIsConsentVisible] = useState(
+    () => analyticsConfigured() && getConsent() === null
+  );
+  const [forceConsentOpen, setForceConsentOpen] = useState(false);
+  const [routeAnnouncement, setRouteAnnouncement] = useState('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    const { title } = getRouteMeta(location.pathname);
+    document.title = `${title} · YourGbedu`;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    mainRef.current?.focus({ preventScroll: true });
+    setRouteAnnouncement(title);
   }, [location.pathname, location.search]);
+
+  const openCookiePreferences = useCallback(() => {
+    resetConsent();
+    setIsConsentVisible(true);
+    setForceConsentOpen(true);
+  }, []);
 
   const loadSongs = useCallback(async () => {
     setIsSongsLoading(true);
@@ -111,6 +132,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (activeSong?.id !== song.id) {
         setActiveSong(song);
         setIsPreviewLocked(false); // reset lock when changing song
+        setCurrentTime(0);
       }
 
       const nextSrc = resolveMediaUrl(song.audioUrl);
@@ -187,7 +209,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       // 30-second preview limit for sample songs
       if (audio.currentTime >= PREVIEW_LIMIT_SECONDS) {
         audio.pause();
-        audio.currentTime = 0;
+        audio.currentTime = PREVIEW_LIMIT_SECONDS;
+        setCurrentTime(PREVIEW_LIMIT_SECONDS);
         setIsPlaying(false);
         setIsPreviewLocked(true);
       }
@@ -248,15 +271,37 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           Skip to main content
         </a>
         {!isAdminRoute && <Header />}
-        <main id="main-content" role="main" className={`${isAdminRoute ? '' : 'pt-16'} flex-grow`}>{children}</main>
-        {!isAdminRoute && <Footer />}
-        {!isAdminRoute && !isCheckoutRoute && <PersistentPlayer />}
+        <main
+          ref={mainRef}
+          id="main-content"
+          role="main"
+          tabIndex={-1}
+          className={`${isAdminRoute ? '' : 'pt-16'} flex-grow`}
+        >
+          {children}
+        </main>
+        <div className="sr-only" aria-live="polite" aria-atomic="true">{routeAnnouncement}</div>
+        {!isAdminRoute && <Footer onOpenCookiePreferences={openCookiePreferences} />}
+        {/* While the consent banner is up we hide the idle "Create your song" pill to
+            keep the bottom of the viewport clear — but NEVER unmount an active
+            transport, or playback becomes uncontrollable (audio keeps going with no
+            pause/scrub anywhere once the visitor navigates off the catalogue). */}
+        {!isAdminRoute && !isCheckoutRoute && (activeSong || !isConsentVisible) && (
+          <PersistentPlayer raised={isConsentVisible} />
+        )}
         {!isAdminRoute && <EmailCapturePopup />}
-        <AnalyticsConsent />
+        <AnalyticsConsent
+          forceOpen={forceConsentOpen}
+          onVisibilityChange={setIsConsentVisible}
+          onResolved={() => {
+            setForceConsentOpen(false);
+            setIsConsentVisible(false);
+          }}
+        />
 
         {/* Background Texture Overlay */}
         <div
-          className="fixed inset-0 pointer-events-none opacity-[0.03] z-[1000]"
+          className="fixed inset-0 pointer-events-none z-[90] opacity-[0.03]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
           }}
@@ -271,8 +316,9 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <AppLayout>
-        <Suspense fallback={<div className="min-h-[60vh] bg-ivory" />}>
+      <OverlayProvider>
+       <AppLayout>
+        <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center bg-ivory" role="status"><span className="font-label text-sm font-bold text-ink-muted">Loading page...</span></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/create" element={<CreateSong />} />
@@ -284,9 +330,11 @@ const App: React.FC = () => {
             <Route path="/checkout/return" element={<Checkout />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/privacy" element={<Privacy />} />
           </Routes>
         </Suspense>
-      </AppLayout>
+       </AppLayout>
+      </OverlayProvider>
     </Router>
   );
 };

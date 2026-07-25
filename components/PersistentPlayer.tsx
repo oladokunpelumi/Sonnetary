@@ -9,8 +9,19 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-const PersistentPlayer: React.FC = () => {
+interface PersistentPlayerProps {
+  /**
+   * Lift the transport above a bottom-anchored banner (the cookie-consent bar)
+   * so the two fixed layers stack instead of overlapping.
+   */
+  raised?: boolean;
+}
+
+const PersistentPlayer: React.FC<PersistentPlayerProps> = ({ raised = false }) => {
   const [isHidden, setIsHidden] = useState(false);
+  // Inline style so it reliably overrides the Tailwind `bottom-*` class
+  // regardless of stylesheet ordering.
+  const raisedStyle = raised ? { bottom: '6.5rem' } : undefined;
   const {
     activeSong,
     isPlaying,
@@ -43,9 +54,11 @@ const PersistentPlayer: React.FC = () => {
     );
   }
 
-  const progressFraction = duration > 0 ? currentTime / duration : 0;
-  const activeBarIndex = Math.floor(progressFraction * waveformBars.length);
   const hasAudio = !!activeSong.audioUrl;
+  const previewDuration = Math.min(duration || 0, 30);
+  const previewTime = Math.min(currentTime, previewDuration);
+  const progressFraction = previewDuration > 0 ? previewTime / previewDuration : 0;
+  const activeBarIndex = Math.floor(progressFraction * waveformBars.length);
 
   if (isHidden) {
     return (
@@ -53,7 +66,7 @@ const PersistentPlayer: React.FC = () => {
         type="button"
         onClick={() => setIsHidden(false)}
         className="fixed bottom-5 right-5 z-[100] inline-flex h-12 items-center gap-2 rounded-full border border-cream/10 bg-ink px-4 text-cream shadow-[0_10px_24px_rgba(31,27,20,0.22)] transition-colors hover:bg-terracotta"
-        style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ marginBottom: 'env(safe-area-inset-bottom)', ...raisedStyle }}
         aria-label="Show music player"
       >
         <span className="material-symbols-outlined text-xl" aria-hidden="true">
@@ -67,20 +80,20 @@ const PersistentPlayer: React.FC = () => {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex justify-center px-3 pb-[env(safe-area-inset-bottom)]">
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex justify-center px-3 pb-[env(safe-area-inset-bottom)]" style={raisedStyle}>
       <div className="pointer-events-auto grid w-full max-w-[960px] grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-[1.75rem] border border-cream/10 bg-ink px-3 py-2.5 text-cream shadow-[0_18px_42px_rgba(31,27,20,0.28)] md:grid-cols-[minmax(170px,245px)_auto_minmax(170px,1fr)_auto_auto] md:rounded-full md:px-4 lg:grid-cols-[minmax(170px,245px)_auto_minmax(170px,1fr)_auto_auto_auto]">
         <div className="flex min-w-0 items-center gap-3">
           <img
             src={activeSong.coverUrl}
             alt=""
             loading="eager"
-            className="h-12 w-12 shrink-0 rounded-xl border border-cream/15 object-cover md:rounded-full"
+            className="h-12 w-12 shrink-0 rounded-lg border border-cream/15 object-cover md:rounded-full"
           />
           <div className="min-w-0">
-            <p className="truncate font-headline text-xl font-semibold italic leading-none text-cream">
+            <p className="truncate font-body text-base font-bold leading-tight text-cream">
               {activeSong.title}
             </p>
-            <p className="mt-1 truncate font-label text-xs font-bold uppercase tracking-[0.14em] text-mustard-soft/80">
+            <p className="mt-1 truncate font-label text-xs font-bold uppercase tracking-[0.14em] text-mustard-soft">
               {activeSong.genre} {hasAudio ? '' : '- no audio'}
             </p>
           </div>
@@ -104,7 +117,7 @@ const PersistentPlayer: React.FC = () => {
             className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
               hasAudio && !isPreviewLocked
                 ? 'bg-mustard text-ink hover:brightness-95'
-                : 'cursor-not-allowed bg-cream/10 text-cream/35'
+                : 'cursor-not-allowed bg-cream/10 text-cream/55'
             }`}
             aria-label={isPlaying ? 'Pause sample' : 'Play sample'}
           >
@@ -126,41 +139,47 @@ const PersistentPlayer: React.FC = () => {
 
         <div className="hidden min-w-0 items-center gap-3 md:flex">
           <span className="w-9 text-right font-mono text-xs text-cream/55">
-            {formatTime(currentTime)}
+            {formatTime(previewTime)}
           </span>
-          {isPreviewLocked ? (
-            <div className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-cream/8 px-3">
+          <div className="relative flex h-10 min-w-0 flex-1 items-center gap-[3px] rounded-full bg-black/20 px-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-cream">
+            {waveformBars.map((height, i) => (
+              <span
+                key={i}
+                className={`w-1 rounded-full ${i < activeBarIndex ? 'bg-mustard' : 'bg-cream/20'}`}
+                style={{ height: `${height}%` }}
+                aria-hidden="true"
+              />
+            ))}
+            <label className="sr-only" htmlFor="sample-position">Sample position</label>
+            <input
+              id="sample-position"
+              type="range"
+              min={0}
+              max={previewDuration || 0}
+              // 1s granularity: step={5} quantised every seek to 5s jumps.
+              step={1}
+              // While scrubbing, show the user's own value. Binding straight to
+              // previewTime made rapid arrow-key presses lossy: each keypress fired
+              // onChange, but React re-rendered from the not-yet-updated media time
+              // and reverted the input, so 5 presses moved ~1s instead of 5s.
+              value={Math.round(previewTime)}
+              onChange={(event) => seek(Number(event.target.value))}
+              disabled={!hasAudio || !previewDuration || isPreviewLocked}
+              aria-valuetext={`${formatTime(previewTime)} of ${formatTime(previewDuration)}`}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+            />
+            {isPreviewLocked && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 rounded-full bg-ink/90 px-3" role="status">
               <span className="material-symbols-outlined text-sm text-mustard" aria-hidden="true">
                 lock
               </span>
               <span className="truncate font-label text-xs font-bold text-mustard-soft">
                 30s preview ended
               </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="flex h-10 flex-1 items-center gap-[3px] rounded-full bg-black/20 px-3"
-              onClick={(e) => {
-                if (!hasAudio || !duration) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const fraction = (e.clientX - rect.left) / rect.width;
-                seek(fraction * duration);
-              }}
-              aria-label="Seek within sample preview"
-            >
-              {waveformBars.map((height, i) => (
-                <span
-                  key={i}
-                  className={`w-1 rounded-full transition-colors ${
-                    i < activeBarIndex ? 'bg-mustard' : 'bg-cream/20'
-                  }`}
-                  style={{ height: `${height}%` }}
-                  aria-hidden="true"
-                />
-              ))}
-            </button>
-          )}
+              </div>
+            )}
+          </div>
+          <span className="w-9 font-mono text-xs text-cream/55">{formatTime(previewDuration)}</span>
         </div>
 
         <div className="hidden shrink-0 items-center gap-2 lg:flex">
@@ -178,7 +197,8 @@ const PersistentPlayer: React.FC = () => {
             step="0.01"
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-20 cursor-pointer accent-mustard"
+            aria-valuetext={`${Math.round(volume * 100)} percent`}
+            className="h-11 w-20 cursor-pointer accent-mustard"
           />
         </div>
 
@@ -199,6 +219,24 @@ const PersistentPlayer: React.FC = () => {
             close
           </span>
         </button>
+
+        {isPreviewLocked && (
+          <div className="col-span-3 grid grid-cols-2 gap-2 border-t border-cream/15 pt-2 md:hidden">
+            <Link
+              to="/create"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-mustard px-3 text-center font-label text-xs font-bold uppercase tracking-[0.1em] text-ink"
+            >
+              Create yours
+            </Link>
+            <button
+              type="button"
+              onClick={skipNext}
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-cream/30 px-3 text-center font-label text-xs font-bold uppercase tracking-[0.1em] text-cream"
+            >
+              Next sample
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

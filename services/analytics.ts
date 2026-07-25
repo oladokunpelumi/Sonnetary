@@ -15,14 +15,20 @@ const META_PIXEL_ID = (import.meta.env.VITE_META_PIXEL_ID as string | undefined)
 
 const CONSENT_KEY = 'yourgbedu_analytics_consent';
 
+type MetaPixelFn = ((...args: unknown[]) => void) & {
+  callMethod?: (...args: unknown[]) => void;
+  queue: unknown[][];
+  push: MetaPixelFn;
+  loaded: boolean;
+  version: string;
+};
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    fbq?: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    _fbq?: any;
+    fbq?: MetaPixelFn;
+    _fbq?: MetaPixelFn;
   }
 }
 
@@ -48,6 +54,27 @@ export function setConsent(value: 'granted' | 'denied') {
     // localStorage may be unavailable; not fatal.
   }
   if (value === 'granted') loadAnalytics();
+  applyRuntimeConsent(value);
+}
+
+export function resetConsent() {
+  try {
+    window.localStorage.removeItem(CONSENT_KEY);
+  } catch {
+    // localStorage may be unavailable; runtime consent is still revoked.
+  }
+  applyRuntimeConsent('denied');
+}
+
+function applyRuntimeConsent(value: 'granted' | 'denied') {
+  const analyticsStorage = value === 'granted' ? 'granted' : 'denied';
+  window.gtag?.('consent', 'update', {
+    analytics_storage: analyticsStorage,
+    ad_storage: analyticsStorage,
+    ad_user_data: analyticsStorage,
+    ad_personalization: analyticsStorage,
+  });
+  window.fbq?.('consent', value === 'granted' ? 'grant' : 'revoke');
 }
 
 function injectScript(src: string) {
@@ -68,31 +95,34 @@ export function loadAnalytics() {
   if (GA_ID) {
     injectScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_ID)}`);
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag() {
-      // eslint-disable-next-line prefer-rest-params
-      window.dataLayer!.push(arguments);
+    window.gtag = function gtag(...args: unknown[]) {
+      window.dataLayer!.push(args);
     };
+    window.gtag('consent', 'default', {
+      analytics_storage: 'granted',
+      ad_storage: 'granted',
+      ad_user_data: 'granted',
+      ad_personalization: 'granted',
+    });
     window.gtag('js', new Date());
     // SPA: we send page_view manually on route change, so disable auto.
     window.gtag('config', GA_ID, { send_page_view: false });
   }
 
   if (META_PIXEL_ID) {
-    /* Standard Meta Pixel bootstrap, run from bundled JS (CSP-safe). The vendor
-       snippet is intentionally loosely typed. */
-    /* eslint-disable @typescript-eslint/no-explicit-any, prefer-rest-params */
-    const n: any = function () {
-      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-    };
+    const n = ((...args: unknown[]) => {
+      if (n.callMethod) n.callMethod(...args);
+      else n.queue.push(args);
+    }) as MetaPixelFn;
     if (!window._fbq) window._fbq = n;
     n.push = n;
     n.loaded = true;
     n.version = '2.0';
     n.queue = [];
     window.fbq = n;
-    /* eslint-enable @typescript-eslint/no-explicit-any, prefer-rest-params */
     injectScript('https://connect.facebook.net/en_US/fbevents.js');
     window.fbq('init', META_PIXEL_ID);
+    window.fbq('consent', 'grant');
   }
 }
 

@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { analyticsConfigured, getConsent, setConsent, loadAnalytics, trackPage } from '../services/analytics';
+import { useOverlay } from '../contexts/OverlayContext';
+
+interface AnalyticsConsentProps {
+  forceOpen?: boolean;
+  onVisibilityChange?: (isVisible: boolean) => void;
+  onResolved?: () => void;
+}
 
 /**
  * Cookie-consent banner + SPA pageview tracker.
@@ -9,9 +16,21 @@ import { analyticsConfigured, getConsent, setConsent, loadAnalytics, trackPage }
  * The banner shows once (until a choice is stored) and only when analytics IDs
  * are configured. After consent, pageviews fire on every hash route change.
  */
-const AnalyticsConsent: React.FC = () => {
+const AnalyticsConsent: React.FC<AnalyticsConsentProps> = ({
+  forceOpen = false,
+  onVisibilityChange,
+  onResolved,
+}) => {
   const location = useLocation();
   const [decided, setDecided] = useState<boolean>(() => getConsent() !== null);
+  const { setLayerOpen } = useOverlay();
+  const isVisible = analyticsConfigured() && (forceOpen || !decided);
+
+  useEffect(() => {
+    setLayerOpen('consent', isVisible);
+    onVisibilityChange?.(isVisible);
+    return () => setLayerOpen('consent', false);
+  }, [isVisible, onVisibilityChange, setLayerOpen]);
 
   // Load SDKs on mount if consent was granted in a previous visit.
   useEffect(() => {
@@ -23,17 +42,18 @@ const AnalyticsConsent: React.FC = () => {
     trackPage(`${location.pathname}${location.search}`);
   }, [location.pathname, location.search]);
 
-  if (!analyticsConfigured() || decided) return null;
+  if (!isVisible) return null;
 
   const choose = (value: 'granted' | 'denied') => {
     setConsent(value);
     setDecided(true);
+    onResolved?.();
     if (value === 'granted') trackPage(`${location.pathname}${location.search}`);
   };
 
   return (
     <div
-      role="dialog"
+      role="region"
       aria-label="Cookie consent"
       className="fixed inset-x-0 bottom-0 z-[120] border-t border-line bg-cream/95 px-4 py-4 backdrop-blur-sm sm:px-6"
     >
@@ -46,9 +66,9 @@ const AnalyticsConsent: React.FC = () => {
           <button
             type="button"
             onClick={() => choose('denied')}
-            className="rounded-full border border-line-strong px-4 py-2 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+            className="rounded-full border border-line-control px-4 py-2 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
           >
-            Decline
+            Maybe later
           </button>
           <button
             type="button"

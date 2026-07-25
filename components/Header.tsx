@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
+import BrandLogo from './BrandLogo';
 import TrackOrderModal from './TrackOrderModal';
+import { useModalDialog } from '../hooks/useModalDialog';
+import { useOverlay } from '../contexts/OverlayContext';
 
 const MOBILE_MENU_ID = 'mobile-navigation-panel';
 
@@ -8,6 +12,11 @@ const Header: React.FC = () => {
   const location = useLocation();
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const previousLocationRef = useRef(`${location.pathname}?${location.search}`);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const firstMenuLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const openTrackAfterMenuRef = useRef(false);
+  const { canOpen, setLayerOpen } = useOverlay();
 
   const navLinkClass = (path: string) =>
     `border-b border-transparent pb-1 font-label text-sm font-bold uppercase tracking-[0.12em] transition-colors duration-200 ${
@@ -16,35 +25,43 @@ const Header: React.FC = () => {
         : 'text-ink-soft hover:border-terracotta/40 hover:text-terracotta'
     }`;
 
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+  const menuDialogRef = useModalDialog({
+    isOpen: isMobileMenuOpen,
+    onClose: closeMobileMenu,
+    initialFocusRef: firstMenuLinkRef,
+  });
+
+  const openTrackModal = useCallback(() => {
+    if (canOpen('task-dialog')) setIsTrackModalOpen(true);
+  }, [canOpen]);
 
   useEffect(() => {
-    closeMobileMenu();
-  }, [location.pathname, location.search]);
-
-  useEffect(() => {
+    const currentLocation = `${location.pathname}?${location.search}`;
+    if (previousLocationRef.current === currentLocation) return undefined;
+    previousLocationRef.current = currentLocation;
     if (!isMobileMenuOpen) return undefined;
+    const closeTimer = window.setTimeout(() => setIsMobileMenuOpen(false), 0);
+    return () => window.clearTimeout(closeTimer);
+  }, [location.pathname, location.search, isMobileMenuOpen]);
 
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  useEffect(() => {
+    setLayerOpen('menu', isMobileMenuOpen);
+    return () => setLayerOpen('menu', false);
+  }, [isMobileMenuOpen, setLayerOpen]);
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMobileMenu();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isMobileMenuOpen]);
+  useEffect(() => {
+    if (isMobileMenuOpen || !openTrackAfterMenuRef.current || !canOpen('task-dialog')) return undefined;
+    openTrackAfterMenuRef.current = false;
+    const openTimer = window.setTimeout(() => setIsTrackModalOpen(true), 0);
+    return () => window.clearTimeout(openTimer);
+  }, [canOpen, isMobileMenuOpen]);
 
   const mobileNavLinkClass = (path: string) =>
-    `flex min-h-16 items-center justify-between rounded-2xl border px-5 font-label text-base font-bold uppercase tracking-[0.14em] transition-colors ${
+    `flex min-h-16 items-center justify-between rounded-lg border px-5 font-label text-base font-bold uppercase tracking-[0.14em] transition-colors ${
       location.pathname === path
         ? 'border-terracotta bg-terracotta-pale text-terracotta-dark'
-        : 'border-line bg-cream text-ink hover:border-terracotta hover:text-terracotta'
+        : 'border-line-control bg-cream text-ink hover:border-terracotta hover:text-terracotta'
     }`;
 
   return (
@@ -52,10 +69,16 @@ const Header: React.FC = () => {
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <h2 className="font-headline text-2xl font-semibold italic text-ink md:text-3xl">
-              YourGbedu
-            </h2>
+          <Link to="/" className="flex min-w-0 items-center" aria-label="YourGbedu home">
+            <BrandLogo
+              variant="icon"
+              tone="fullColor"
+              className="h-10 w-10 lg:hidden"
+            />
+            <BrandLogo
+              tone="fullColor"
+              className="hidden h-14 w-[260px] lg:inline-flex"
+            />
           </Link>
 
           {/* Desktop nav */}
@@ -68,7 +91,7 @@ const Header: React.FC = () => {
             </Link>
             <button
               type="button"
-              onClick={() => setIsTrackModalOpen(true)}
+              onClick={openTrackModal}
               className="border-b border-transparent pb-1 font-label text-sm font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors duration-200 hover:border-terracotta/40 hover:text-terracotta"
             >
               Track Order
@@ -87,19 +110,17 @@ const Header: React.FC = () => {
 
           {/* Mobile actions */}
           <div className="flex items-center gap-2 md:hidden">
-            <Link
-              to="/create"
-              className="inline-flex min-h-11 items-center rounded-full bg-ink px-4 font-label text-xs font-bold uppercase tracking-[0.1em] text-cream transition-colors hover:bg-terracotta sm:px-5 sm:text-xs sm:tracking-[0.14em]"
-            >
-              Create Your Song
-            </Link>
             <button
+              ref={menuButtonRef}
               type="button"
-              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              onClick={() => {
+                if (isMobileMenuOpen) closeMobileMenu();
+                else if (canOpen('menu')) setIsMobileMenuOpen(true);
+              }}
               className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border transition-colors ${
                 isMobileMenuOpen
                   ? 'border-terracotta bg-terracotta-pale text-terracotta-dark'
-                  : 'border-line bg-cream text-ink hover:border-terracotta hover:text-terracotta'
+                  : 'border-line-control bg-cream text-ink hover:border-terracotta hover:text-terracotta'
               }`}
               aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={isMobileMenuOpen}
@@ -113,45 +134,57 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile menu overlay */}
-      {isMobileMenuOpen && (
+      {isMobileMenuOpen && createPortal(
         <div
-          id={MOBILE_MENU_ID}
-          className="fixed inset-x-0 top-16 z-40 block h-[calc(100svh-4rem)] bg-ink/20 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-[190] bg-ink/35 backdrop-blur-sm md:hidden"
+          onClick={closeMobileMenu}
         >
-          <div className="h-full overflow-y-auto bg-ivory px-4 pb-8 pt-4 shadow-ambient-lg">
+          <div
+            id={MOBILE_MENU_ID}
+            ref={menuDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-navigation-title"
+            tabIndex={-1}
+            className="ml-auto flex h-full w-full max-w-md flex-col overflow-y-auto bg-ivory px-5 pb-8 pt-5 shadow-ambient-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5">
+              <h2 id="mobile-navigation-title" className="font-headline text-3xl font-semibold text-ink">Menu</h2>
+              <button
+                type="button"
+                onClick={closeMobileMenu}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-line-control bg-cream text-ink"
+                aria-label="Close navigation menu"
+              >
+                <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
+              </button>
+            </div>
+
             <nav className="flex flex-col gap-3" aria-label="Mobile navigation">
-              <Link to="/" onClick={closeMobileMenu} className={mobileNavLinkClass('/')}>
+              <Link ref={firstMenuLinkRef} to="/" onClick={closeMobileMenu} className={mobileNavLinkClass('/')}>
                 <span>Home</span>
-                <span className="material-symbols-outlined text-xl" aria-hidden="true">
-                  home
-                </span>
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">home</span>
               </Link>
               <Link to="/library" onClick={closeMobileMenu} className={mobileNavLinkClass('/library')}>
                 <span>Catalogue</span>
-                <span className="material-symbols-outlined text-xl" aria-hidden="true">
-                  library_music
-                </span>
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">library_music</span>
               </Link>
               <button
                 type="button"
                 onClick={() => {
+                  openTrackAfterMenuRef.current = true;
                   closeMobileMenu();
-                  setIsTrackModalOpen(true);
                 }}
-                className="flex min-h-16 items-center justify-between rounded-2xl border border-line bg-cream px-5 text-left font-label text-base font-bold uppercase tracking-[0.14em] text-ink transition-colors hover:border-terracotta hover:text-terracotta"
+                className="flex min-h-16 items-center justify-between rounded-lg border border-line-control bg-cream px-5 text-left font-label text-base font-bold uppercase tracking-[0.14em] text-ink transition-colors hover:border-terracotta hover:text-terracotta"
               >
                 <span>Track Order</span>
-                <span className="material-symbols-outlined text-xl" aria-hidden="true">
-                  receipt_long
-                </span>
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">receipt_long</span>
               </button>
             </nav>
 
-            <div className="mt-5 rounded-3xl border border-line bg-cream p-4">
-              <p className="font-headline text-3xl italic leading-none text-ink">
-                Start with the person you love.
-              </p>
+            <div className="mt-5 border-t border-line pt-5">
+              <p className="font-headline text-3xl italic leading-none text-ink">Start with the person you love.</p>
               <p className="mt-3 text-sm leading-6 text-ink-soft">
                 Build a custom song brief, then we configure the record around your story.
               </p>
@@ -164,7 +197,8 @@ const Header: React.FC = () => {
               </Link>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <TrackOrderModal isOpen={isTrackModalOpen} onClose={() => setIsTrackModalOpen(false)} />
