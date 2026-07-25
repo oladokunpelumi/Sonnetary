@@ -65,9 +65,9 @@ const Header: React.FC = () => {
     }`;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-line bg-ivory/88 backdrop-blur-xl">
+    <header className="fixed left-0 right-0 top-0 z-50 w-full max-w-full overflow-hidden border-b border-line bg-ivory/88 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo on Left */}
           <Link to="/" className="flex shrink-0 items-center" aria-label="YourGbedu home">
             <BrandLogo
@@ -82,8 +82,8 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Combined Navigation and Action Button on Right */}
-          <div className="hidden items-center gap-8 lg:flex xl:gap-10">
-            <nav className="flex items-center gap-8 xl:gap-10" aria-label="Main navigation">
+          <div className="hidden min-w-0 shrink-0 items-center gap-6 lg:flex xl:gap-8">
+            <nav className="flex items-center gap-6 xl:gap-8" aria-label="Main navigation">
               <Link to="/" className={`whitespace-nowrap ${navLinkClass('/')}`}>
                 Home
               </Link>
@@ -101,7 +101,7 @@ const Header: React.FC = () => {
 
             <Link
               to="/create"
-              className="whitespace-nowrap rounded-full bg-ink px-7 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2"
+              className="whitespace-nowrap rounded-full bg-ink px-6 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2 xl:px-7"
             >
               Create Your Song
             </Link>
