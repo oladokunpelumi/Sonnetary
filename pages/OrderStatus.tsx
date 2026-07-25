@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { OrderData } from '../types';
+import { formatCurrencyAmount } from '../constants';
 import SongReady from '../components/SongReady';
 
 type AuthState = 'checking' | 'authenticated' | 'unauthenticated';
@@ -12,19 +13,11 @@ const OrderStatus: React.FC = () => {
   const [timeLefts, setTimeLefts] = useState<
     Record<string, { days: number; hours: number; minutes: number; seconds: number }>
   >({});
-  const [isNigeria, setIsNigeria] = useState<boolean>(true);
   const [authState, setAuthState] = useState<AuthState>('checking');
   const [signInState, setSignInState] = useState<SignInState>('idle');
   const [signInEmail, setSignInEmail] = useState('');
 
   const location = useLocation();
-
-  useEffect(() => {
-    fetch('/api/geo/country')
-      .then((r) => r.json())
-      .then((data) => setIsNigeria(!!data.isNigeria))
-      .catch(() => setIsNigeria(true));
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -385,15 +378,24 @@ const OrderStatus: React.FC = () => {
               <div className="mt-3 flex items-center justify-between gap-4">
                 <div>
                   <p className="font-headline text-4xl font-semibold text-mustard">
-                    {isNigeria ? '₦30,000' : '$25'}
+                    {formatCurrencyAmount(order.currency, order.amount)}
                   </p>
-                  <p className="text-sm text-cream/35 line-through">
-                    {isNigeria ? '₦60,000' : '$50'}
-                  </p>
+                  {typeof order.originalAmount === 'number' && order.originalAmount > order.amount && (
+                    <p className="text-sm text-cream/35 line-through">
+                      {formatCurrencyAmount(order.currency, order.originalAmount)}
+                    </p>
+                  )}
                 </div>
-                <span className="rounded-full bg-mustard px-3 py-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
-                  50% off
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  {typeof order.originalAmount === 'number' && order.originalAmount > order.amount && (
+                    <span className="rounded-full bg-mustard px-3 py-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
+                      {order.promoDiscountPercent ? `${order.promoDiscountPercent}% off` : 'Discounted'}
+                    </span>
+                  )}
+                  <span className="rounded-full border border-cream/30 px-3 py-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-cream/80">
+                    {order.fastDelivery ? 'Fast delivery · 24h' : 'Standard delivery · 48h'}
+                  </span>
+                </div>
               </div>
             </div>
 

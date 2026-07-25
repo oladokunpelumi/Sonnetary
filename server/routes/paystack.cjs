@@ -217,7 +217,8 @@ router.post('/webhook', (req, res) => {
         const id = uuidv4();
         const trackingToken = makeTrackingToken();
         const createdAt = new Date().toISOString();
-        const actualDeliveryHours = isFastDelivery(metadata?.fastDelivery)
+        const fastDelivery = isFastDelivery(metadata?.fastDelivery);
+        const actualDeliveryHours = fastDelivery
             ? FAST_DELIVERY_HOURS
             : STANDARD_DELIVERY_HOURS;
         const deliveryDate = new Date(
@@ -228,13 +229,13 @@ router.post('/webhook', (req, res) => {
             await execSql(`
                 INSERT INTO orders (
                     id, tracking_token, song_title, genre, mood, tempo, occasion, occasion_detail, story, status,
-                    created_at, delivery_date, paystack_reference, amount,
+                    created_at, delivery_date, paystack_reference, amount, currency, fast_delivery,
                     recipient_type, sender_name, voice_gender,
                     special_qualities, favorite_memories, special_message, customer_email,
                     promo_code_id, promo_code_preview, promo_discount_percent,
                     original_amount, discounted_amount
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
                 id,
                 trackingToken,
@@ -248,6 +249,8 @@ router.post('/webhook', (req, res) => {
                 deliveryDate,
                 reference,
                 amount,
+                'ngn', // Paystack only ever settles Naira
+                fastDelivery ? 1 : 0,
                 metadata?.recipientType || '',
                 metadata?.senderName || '',
                 metadata?.voiceGender || '',

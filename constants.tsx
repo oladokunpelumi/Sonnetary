@@ -153,6 +153,24 @@ export function getDiscountedPrice(provider: PaymentProvider | null, fastDeliver
     : DISCOUNTED_PRICING[resolvedProvider].standard;
 }
 
+// Formats a raw integer amount (kobo for NGN, cents for USD) as its display
+// string. The order/admin/checkout surfaces must all format the SAME stored
+// amount+currency pair rather than each guessing the currency independently —
+// that mismatch (viewer-geo-based or hardcoded-symbol) is what caused prices
+// to display wrong across the tracking page and admin dashboard.
+export function formatCurrencyAmount(currency: Currency | null | undefined, amount: number | null | undefined) {
+  const resolvedCurrency = currency || 'ngn';
+  const resolvedAmount = amount || 0;
+  if (resolvedCurrency === 'usd') {
+    const value = resolvedAmount / 100;
+    return `$${value.toLocaleString('en-US', {
+      minimumFractionDigits: resolvedAmount % 100 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+  return `₦${(resolvedAmount / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
+}
+
 export function getDiscountedPriceByCurrency(currency: Currency | null, fastDelivery: boolean) {
   const resolvedCurrency = currency || 'ngn';
   return fastDelivery

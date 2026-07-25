@@ -112,7 +112,29 @@ try { db.exec("ALTER TABLE orders ADD COLUMN final_song_title TEXT"); } catch { 
 try { db.exec("ALTER TABLE orders ADD COLUMN delivered_at TEXT"); } catch { /* already migrated */ }
 try { db.exec("ALTER TABLE orders ADD COLUMN rating INTEGER"); } catch { /* already migrated */ }
 try { db.exec("ALTER TABLE orders ADD COLUMN tracking_token TEXT"); } catch { /* already migrated */ }
+try { db.exec("ALTER TABLE orders ADD COLUMN currency TEXT"); } catch { /* already migrated */ }
+try { db.exec("ALTER TABLE orders ADD COLUMN fast_delivery INTEGER"); } catch { /* already migrated */ }
 try { db.exec("ALTER TABLE songs ADD COLUMN sort_order INTEGER DEFAULT 99"); } catch { /* already migrated */ }
+
+// Backfill currency/fast_delivery for orders created before these columns existed.
+// currency: Paystack orders are always NGN. Stripe orders created before Naira-on-Stripe
+// shipped are unambiguously USD (that capability didn't exist yet), so this isn't a guess.
+// fast_delivery: derived from the delivery window (24h fast vs 48h standard) rather than
+// amount, since amount comparisons would break across price/promo changes over time.
+try {
+    db.exec(`UPDATE orders SET currency = 'ngn' WHERE currency IS NULL AND paystack_reference IS NOT NULL`);
+    db.exec(`UPDATE orders SET currency = 'usd' WHERE currency IS NULL AND stripe_session_id IS NOT NULL`);
+    db.exec(`UPDATE orders SET currency = 'ngn' WHERE currency IS NULL`);
+    db.exec(`
+        UPDATE orders SET fast_delivery = CASE
+            WHEN (julianday(delivery_date) - julianday(created_at)) * 24 < 36 THEN 1
+            ELSE 0
+        END
+        WHERE fast_delivery IS NULL
+    `);
+} catch (err) {
+    console.error('[Migration] currency/fast_delivery backfill failed:', err.message);
+}
 
 // Subscribers — email-capture popup list
 db.exec(`

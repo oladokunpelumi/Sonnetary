@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SongPipelinePanel } from '../components/admin/SongPipelinePanel';
+import { formatCurrencyAmount, type Currency } from '../constants';
 
 interface Order {
   id: string;
@@ -17,6 +18,8 @@ interface Order {
   stripe_session_id: string | null;
   paystack_reference: string | null;
   amount: number;
+  currency: Currency;
+  fast_delivery: number; // raw SQLite/Postgres integer flag (0/1), not a JS boolean
   recipient_type: string;
   recipient_name: string | null;
   sender_name: string;
@@ -71,7 +74,9 @@ interface Pagination {
 
 interface Stats {
   totalOrders: number;
-  totalRevenue: number;
+  // Revenue is grouped by currency — amounts are currency-specific integers
+  // (kobo vs cents), so a single summed total across currencies would be meaningless.
+  revenueByCurrency: { ngn: number; usd: number };
   songCount: number;
 }
 
@@ -98,10 +103,6 @@ function formatDate(value: string) {
     month: 'short',
     year: 'numeric',
   });
-}
-
-function formatAmount(amount: number) {
-  return `₦${((amount || 0) / 100).toLocaleString('en-NG')}`;
 }
 
 function labelize(value?: string | null) {
@@ -620,7 +621,18 @@ const Admin: React.FC = () => {
         <section className="grid grid-cols-1 gap-3 md:grid-cols-4">
           {[
             { label: 'Total Orders', value: stats?.totalOrders ?? '-', icon: 'receipt_long' },
-            { label: 'Revenue', value: stats ? formatAmount(stats.totalRevenue) : '-', icon: 'payments' },
+            {
+              label: 'Revenue',
+              // Revenue is currency-specific (kobo vs cents) — shown as separate
+              // totals rather than a single summed number, which would be meaningless.
+              value: stats
+                ? [
+                    stats.revenueByCurrency.ngn ? formatCurrencyAmount('ngn', stats.revenueByCurrency.ngn) : null,
+                    stats.revenueByCurrency.usd ? formatCurrencyAmount('usd', stats.revenueByCurrency.usd) : null,
+                  ].filter(Boolean).join(' + ') || formatCurrencyAmount('ngn', 0)
+                : '-',
+              icon: 'payments',
+            },
             { label: 'Visible Pending Generations', value: currentPendingGenerations, icon: 'auto_awesome' },
             { label: 'Songs in Library', value: stats?.songCount ?? '-', icon: 'library_music' },
           ].map((stat) => (
@@ -924,7 +936,7 @@ const Admin: React.FC = () => {
 
                       <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                         <span className="font-label text-sm font-bold text-ink">
-                          {formatAmount(order.amount)}
+                          {formatCurrencyAmount(order.currency, order.amount)}
                         </span>
                         <select
                           value={order.status}
@@ -969,9 +981,10 @@ const Admin: React.FC = () => {
                             ['Delivery', formatDate(order.delivery_date)],
                             ['Email', order.customer_email],
                             ['Payment Ref', order.paystack_reference || order.stripe_session_id],
+                            ['Delivery Speed', order.fast_delivery ? 'Fast · 24h' : 'Standard · 48h'],
                             ['Promo', order.promo_code_preview ? `${order.promo_code_preview} (${order.promo_discount_percent || 0}% off)` : ''],
-                            ['Original Amount', order.original_amount ? formatAmount(order.original_amount) : ''],
-                            ['Discounted Amount', order.discounted_amount !== null && order.discounted_amount !== undefined ? formatAmount(order.discounted_amount) : ''],
+                            ['Original Amount', order.original_amount ? formatCurrencyAmount(order.currency, order.original_amount) : ''],
+                            ['Discounted Amount', order.discounted_amount !== null && order.discounted_amount !== undefined ? formatCurrencyAmount(order.currency, order.discounted_amount) : ''],
                             ['Created', formatDate(order.created_at)],
                           ].map(([label, value]) => (
                             <div key={label}>

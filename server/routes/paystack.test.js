@@ -246,6 +246,32 @@ describe('POST /api/paystack/webhook — charge.success order creation', () => {
     expect(order.genre).toBe('Gospel');
     expect(order.customer_email).toBe('gospel@test.com');
     expect(order.status).toBe('in_production');
+    // Paystack only ever settles Naira — must be persisted so the admin
+    // dashboard and tracking page can display it without guessing.
+    expect(order.currency).toBe('ngn');
+    expect(order.fast_delivery).toBe(0);
+  });
+
+  it('persists fast_delivery=1 and the 24h delivery window when metadata requests it', async () => {
+    const { default: supertest } = await import('supertest');
+    const reference = 'ref_fast_delivery_001';
+    const body = makeChargeSuccessPayload(reference, { fastDelivery: 'true' });
+    const sig = makeSignature(body);
+
+    const res = await supertest(app)
+      .post('/api/paystack/webhook')
+      .set('Content-Type', 'application/json')
+      .set('x-paystack-signature', sig)
+      .send(body);
+
+    expect(res.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const order = db.prepare('SELECT * FROM orders WHERE paystack_reference = ?').get(reference);
+    expect(order.fast_delivery).toBe(1);
+    expect(order.currency).toBe('ngn');
+    const hours = (new Date(order.delivery_date) - new Date(order.created_at)) / (1000 * 60 * 60);
+    expect(hours).toBeCloseTo(24, 0);
   });
 
   it('does NOT create a duplicate order for a repeated reference (idempotency)', async () => {

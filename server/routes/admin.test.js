@@ -40,6 +40,8 @@ const inMemoryDb = await (async () => {
       stripe_session_id TEXT,
       paystack_reference TEXT,
       amount INTEGER DEFAULT 30000,
+      currency TEXT,
+      fast_delivery INTEGER,
       customer_email TEXT,
       ai_brief TEXT,
       recipient_type TEXT,
@@ -219,6 +221,66 @@ describe('GET /api/admin/orders (protected)', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toBeDefined();
     expect(Array.isArray(res.body.data)).toBe(true);
+  });
+
+  // Each order carries its OWN currency/fast_delivery — the admin dashboard must
+  // never infer these from the viewer's own location or a hardcoded symbol.
+  it('returns each order\'s own currency and fast_delivery, not a guess', async () => {
+    const { default: supertest } = await import('supertest');
+    const now = new Date().toISOString();
+
+    routeDb.prepare(`
+      INSERT INTO orders (id, song_title, genre, occasion, created_at, delivery_date, paystack_reference, amount, currency, fast_delivery)
+      VALUES (?, 'NGN Order', 'Gospel', 'birthday', ?, ?, 'ref_ngn_admin_001', 5000000, 'ngn', 1)
+    `).run(crypto.randomUUID(), now, now);
+
+    routeDb.prepare(`
+      INSERT INTO orders (id, song_title, genre, occasion, created_at, delivery_date, stripe_session_id, amount, currency, fast_delivery)
+      VALUES (?, 'USD Order', 'Soul', 'wedding', ?, ?, 'cs_usd_admin_001', 2500, 'usd', 0)
+    `).run(crypto.randomUUID(), now, now);
+
+    const loginRes = await supertest(app)
+      .post('/api/admin/login')
+      .send({ username: 'testadmin', password: 'supersecret_test_password_123!' })
+      .set('Content-Type', 'application/json');
+    const cookie = loginRes.headers['set-cookie'];
+
+    const res = await supertest(app).get('/api/admin/orders?limit=100').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+
+    const ngnOrder = res.body.data.find((o) => o.paystack_reference === 'ref_ngn_admin_001');
+    const usdOrder = res.body.data.find((o) => o.stripe_session_id === 'cs_usd_admin_001');
+    expect(ngnOrder).toMatchObject({ currency: 'ngn', fast_delivery: 1 });
+    expect(usdOrder).toMatchObject({ currency: 'usd', fast_delivery: 0 });
+  });
+});
+
+describe('GET /api/admin/stats', () => {
+  it('splits revenue by currency instead of summing kobo and cents together', async () => {
+    const { default: supertest } = await import('supertest');
+    const now = new Date().toISOString();
+
+    routeDb.prepare(`
+      INSERT INTO orders (id, song_title, genre, occasion, created_at, delivery_date, paystack_reference, amount, currency)
+      VALUES (?, 'NGN Stats Order', 'Gospel', 'birthday', ?, ?, 'ref_stats_ngn_001', 3000000, 'ngn')
+    `).run(crypto.randomUUID(), now, now);
+
+    routeDb.prepare(`
+      INSERT INTO orders (id, song_title, genre, occasion, created_at, delivery_date, stripe_session_id, amount, currency)
+      VALUES (?, 'USD Stats Order', 'Soul', 'wedding', ?, ?, 'cs_stats_usd_001', 2500, 'usd')
+    `).run(crypto.randomUUID(), now, now);
+
+    const loginRes = await supertest(app)
+      .post('/api/admin/login')
+      .send({ username: 'testadmin', password: 'supersecret_test_password_123!' })
+      .set('Content-Type', 'application/json');
+    const cookie = loginRes.headers['set-cookie'];
+
+    const res = await supertest(app).get('/api/admin/stats').set('Cookie', cookie);
+    expect(res.status).toBe(200);
+    expect(res.body.revenueByCurrency.ngn).toBeGreaterThanOrEqual(3000000);
+    expect(res.body.revenueByCurrency.usd).toBeGreaterThanOrEqual(2500);
+    expect(res.body.totalRevenue).toBeUndefined();
   });
 });
 

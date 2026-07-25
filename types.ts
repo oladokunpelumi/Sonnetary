@@ -57,6 +57,11 @@ export interface OrderData {
     seconds: number;
   };
   amount: number;
+  currency?: 'ngn' | 'usd';
+  fastDelivery?: boolean;
+  originalAmount?: number | null;
+  discountedAmount?: number | null;
+  promoDiscountPercent?: number | null;
   recipientType?: string | null;
   recipientName?: string | null;
   senderName?: string | null;
