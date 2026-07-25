@@ -81,35 +81,38 @@ const Header: React.FC = () => {
             />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden items-center space-x-10 md:flex">
-            <Link to="/" className={navLinkClass('/')}>
+          {/* Desktop nav. Breakpoint matches the logo swap below (lg) rather than
+              md — between md and lg there's only the small icon logo to offset
+              three nav items plus the CTA, which is the tightest combination and
+              the first to overlap under a browser text-zoom / reflow test. */}
+          <nav className="hidden items-center space-x-10 lg:flex">
+            <Link to="/" className={`whitespace-nowrap ${navLinkClass('/')}`}>
               Home
             </Link>
-            <Link to="/library" className={navLinkClass('/library')}>
+            <Link to="/library" className={`whitespace-nowrap ${navLinkClass('/library')}`}>
               Catalogue
             </Link>
             <button
               type="button"
               onClick={openTrackModal}
-              className="border-b border-transparent pb-1 font-label text-sm font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors duration-200 hover:border-terracotta/40 hover:text-terracotta"
+              className="whitespace-nowrap border-b border-transparent pb-1 font-label text-sm font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors duration-200 hover:border-terracotta/40 hover:text-terracotta"
             >
               Track Order
             </button>
           </nav>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden lg:flex items-center space-x-6">
             <Link
               to="/create"
-              className="rounded-full bg-ink px-7 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta"
+              className="whitespace-nowrap rounded-full bg-ink px-7 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta"
             >
               Create Your Song
             </Link>
           </div>
 
           {/* Mobile actions */}
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
             <button
               ref={menuButtonRef}
               type="button"
@@ -136,7 +139,7 @@ const Header: React.FC = () => {
 
       {isMobileMenuOpen && createPortal(
         <div
-          className="fixed inset-0 z-[190] bg-ink/35 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-[190] bg-ink/35 backdrop-blur-sm lg:hidden"
           onClick={closeMobileMenu}
         >
           <div
