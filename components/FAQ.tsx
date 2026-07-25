@@ -53,20 +53,28 @@ const FAQ: React.FC = () => {
           {QA.map((item, idx) => (
             <div
               key={idx}
-              className="cursor-pointer border-b border-line last:border-b-0"
-              onClick={() => toggleOpen(idx)}
+              className="border-b border-line last:border-b-0"
             >
-              <button className="group flex w-full items-center justify-between gap-4 py-6 text-left">
-                <h3 className="font-headline text-2xl font-medium leading-tight text-ink md:text-3xl">
+              <h3>
+                <button
+                  type="button"
+                  className="group flex w-full items-center justify-between gap-4 py-6 text-left"
+                  onClick={() => toggleOpen(idx)}
+                  aria-expanded={openIndex === idx}
+                  aria-controls={`faq-panel-${idx}`}
+                >
+                <span className="font-body text-xl font-bold leading-tight text-ink md:text-2xl">
                   {item.q}
-                </h3>
-                <div className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line bg-ivory text-terracotta transition-colors group-hover:border-terracotta">
-                  {openIndex === idx ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                </div>
-              </button>
+                </span>
+                <span className="ml-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-control bg-ivory text-terracotta transition-colors group-hover:border-terracotta" aria-hidden="true">
+                  {openIndex === idx ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </span>
+                </button>
+              </h3>
 
               <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === idx ? 'max-h-[800px] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+                id={`faq-panel-${idx}`}
+                hidden={openIndex !== idx}
               >
                 <div className="max-w-3xl pb-6 font-body text-base leading-7 text-ink-soft whitespace-pre-wrap">
                   {item.a}

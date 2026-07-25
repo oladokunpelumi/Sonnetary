@@ -194,6 +194,8 @@ async function initSchema() {
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TEXT');
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS rating INTEGER');
     await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_token TEXT');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS currency TEXT');
+    await pool.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS fast_delivery INTEGER');
     await pool.query('ALTER TABLE song_generations ADD COLUMN IF NOT EXISTS final_output TEXT');
     await pool.query('ALTER TABLE song_generations ADD COLUMN IF NOT EXISTS llm_usage TEXT');
     await pool.query('ALTER TABLE song_generations ADD COLUMN IF NOT EXISTS resume_attempts INTEGER DEFAULT 0');
@@ -211,6 +213,22 @@ async function initSchema() {
     // Normalize historical customer_email casing so case-insensitive lookups always match.
     await pool.query("UPDATE orders SET customer_email = LOWER(TRIM(customer_email)) WHERE customer_email IS NOT NULL AND customer_email != LOWER(TRIM(customer_email))");
     await pool.query('CREATE INDEX IF NOT EXISTS idx_orders_customer_email_lower ON orders(LOWER(TRIM(customer_email)))');
+
+    // Backfill currency/fast_delivery for orders created before these columns existed.
+    // currency: Paystack orders are always NGN. Stripe orders created before Naira-on-Stripe
+    // shipped are unambiguously USD (that capability didn't exist yet), so this isn't a guess.
+    // fast_delivery: derived from the delivery window (24h fast vs 48h standard) rather than
+    // amount, since amount comparisons would break across price/promo changes over time.
+    await pool.query("UPDATE orders SET currency = 'ngn' WHERE currency IS NULL AND paystack_reference IS NOT NULL");
+    await pool.query("UPDATE orders SET currency = 'usd' WHERE currency IS NULL AND stripe_session_id IS NOT NULL");
+    await pool.query("UPDATE orders SET currency = 'ngn' WHERE currency IS NULL");
+    await pool.query(`
+        UPDATE orders SET fast_delivery = CASE
+            WHEN EXTRACT(EPOCH FROM (delivery_date::timestamptz - created_at::timestamptz)) / 3600 < 36 THEN 1
+            ELSE 0
+        END
+        WHERE fast_delivery IS NULL
+    `);
     console.log('[PostgreSQL] Schema initialized');
 
     // sort_order is part of the catalogue ordering — added via ALTER for fresh dbs.

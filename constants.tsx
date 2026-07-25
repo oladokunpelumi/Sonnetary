@@ -65,7 +65,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Celebratory',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   anniversary: {
     label: 'Anniversary',
@@ -93,7 +93,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Warm grateful',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   apology: {
     label: 'Apology',
@@ -114,7 +114,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Proud aspirational',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   proposal: {
     label: 'Proposal',
@@ -135,7 +135,7 @@ export const OCCASION_ACCENTS = {
     tone: 'Spontaneous heartfelt',
     accent: '#C99B3E',
     soft: '#FBF0CF',
-    text: '#6F521F',
+    text: 'var(--gold-readable)',
   },
   other: {
     label: 'Other',
@@ -151,6 +151,24 @@ export function getDiscountedPrice(provider: PaymentProvider | null, fastDeliver
   return fastDelivery
     ? DISCOUNTED_PRICING[resolvedProvider].fast
     : DISCOUNTED_PRICING[resolvedProvider].standard;
+}
+
+// Formats a raw integer amount (kobo for NGN, cents for USD) as its display
+// string. The order/admin/checkout surfaces must all format the SAME stored
+// amount+currency pair rather than each guessing the currency independently —
+// that mismatch (viewer-geo-based or hardcoded-symbol) is what caused prices
+// to display wrong across the tracking page and admin dashboard.
+export function formatCurrencyAmount(currency: Currency | null | undefined, amount: number | null | undefined) {
+  const resolvedCurrency = currency || 'ngn';
+  const resolvedAmount = amount || 0;
+  if (resolvedCurrency === 'usd') {
+    const value = resolvedAmount / 100;
+    return `$${value.toLocaleString('en-US', {
+      minimumFractionDigits: resolvedAmount % 100 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+  return `₦${(resolvedAmount / 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
 }
 
 export function getDiscountedPriceByCurrency(currency: Currency | null, fastDelivery: boolean) {

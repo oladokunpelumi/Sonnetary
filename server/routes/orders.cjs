@@ -201,6 +201,8 @@ function computeOrderProgress(order) {
         steps,
         timeLeft: { days, hours, minutes, seconds },
         amount: order.amount,
+        currency: order.currency || 'ngn',
+        fastDelivery: Boolean(order.fast_delivery),
         aiBrief: order.ai_brief || null,
         recipientType: order.recipient_type || null,
         recipientName: order.recipient_name || null,
@@ -267,7 +269,8 @@ router.post('/free', async (req, res) => {
         const id = uuidv4();
         const trackingToken = makeTrackingToken();
         const now = new Date().toISOString();
-        const deliveryHours = isFastDelivery(data.fastDelivery) ? FAST_DELIVERY_HOURS : STANDARD_DELIVERY_HOURS;
+        const fastDelivery = isFastDelivery(data.fastDelivery);
+        const deliveryHours = fastDelivery ? FAST_DELIVERY_HOURS : STANDARD_DELIVERY_HOURS;
         const deliveryDate = new Date(Date.now() + deliveryHours * 60 * 60 * 1000).toISOString();
 
         const order = await withTransaction(async (tx) => {
@@ -289,16 +292,18 @@ router.post('/free', async (req, res) => {
                 INSERT INTO orders (
                     id, tracking_token, song_title, genre, mood, tempo, occasion, occasion_detail, story,
                     status, created_at, delivery_date,
-                    stripe_session_id, paystack_reference, amount, customer_email,
+                    stripe_session_id, paystack_reference, amount, currency, fast_delivery, customer_email,
                     recipient_type, recipient_name, sender_name, voice_gender,
                     special_qualities, favorite_memories, special_message,
                     promo_code_id, promo_code_preview, promo_discount_percent,
                     original_amount, discounted_amount
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, NULL, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, NULL, NULL, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
                 id, trackingToken, data.songTitle || 'Custom Song', data.genre || '', data.mood || '', data.tempo || 100,
                 data.occasion || '', data.occasionDetail || '', data.story || '', now, deliveryDate,
+                quote.currency.toLowerCase(),
+                fastDelivery ? 1 : 0,
                 data.customerEmail ? String(data.customerEmail).trim().toLowerCase() : null,
                 data.recipientType || '', data.recipientName || '', data.senderName || '',
                 data.voiceGender || '', data.specialQualities || '', data.favoriteMemories || '',

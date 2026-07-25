@@ -14,7 +14,7 @@ const Library: React.FC = () => {
   return (
     <div className="bg-ivory px-5 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
-        <section className="grid gap-8 rounded-[1.5rem] border border-line bg-cream p-5 sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:p-10">
+        <section className="grid gap-8 border-y border-line bg-cream py-8 sm:py-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="flex flex-col justify-end">
             <p className="editorial-kicker mb-4">The collection</p>
             <h1 className="font-headline text-6xl font-medium leading-none text-ink sm:text-7xl">
@@ -35,26 +35,26 @@ const Library: React.FC = () => {
                 <span className="material-symbols-outlined text-lg" aria-hidden="true">
                   play_arrow
                 </span>
-                Play all samples
+                Play first sample
               </button>
               <Link
                 to="/create"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-strong px-7 py-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-control px-7 py-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
               >
                 Create your song
               </Link>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-2xl bg-ink">
+          <div className="relative overflow-hidden bg-ink">
             <img
               src="/images/Listen.webp"
               alt="A listening-room scene for YourGbedu catalogue samples"
               loading="lazy"
               decoding="async"
-              className="aspect-[4/3] w-full object-cover opacity-75 sepia-[0.14] mix-blend-luminosity"
+              className="aspect-[4/3] w-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-cream/15 bg-ink/70 p-4 text-cream backdrop-blur">
+            <div className="absolute bottom-0 left-0 right-0 p-5 text-cream">
               <p className="font-headline text-3xl italic leading-none">
                 Listen before you brief.
               </p>
@@ -72,10 +72,11 @@ const Library: React.FC = () => {
                 key={cat}
                 type="button"
                 onClick={() => setFilter(cat)}
+                aria-pressed={filter === cat}
                 className={`min-h-10 shrink-0 rounded-full border px-5 font-label text-xs font-bold uppercase tracking-[0.14em] transition-colors ${
                   filter === cat
                     ? 'border-ink bg-ink text-cream'
-                    : 'border-line-strong bg-cream text-ink-soft hover:border-terracotta hover:text-terracotta'
+                    : 'border-line-control bg-cream text-ink-soft hover:border-terracotta hover:text-terracotta'
                 }`}
               >
                 {cat}
@@ -84,6 +85,10 @@ const Library: React.FC = () => {
           </div>
         </div>
 
+        <p className="sr-only" role="status" aria-live="polite">
+          {filteredSongs.length} {filteredSongs.length === 1 ? 'song' : 'songs'} shown for {filter}.
+        </p>
+
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {filteredSongs.map((song) => {
             const isCurrent = activeSong?.id === song.id;
@@ -91,21 +96,21 @@ const Library: React.FC = () => {
               <button
                 type="button"
                 key={song.id}
-                className={`group overflow-hidden rounded-2xl border bg-cream text-left transition-transform hover:-translate-y-1 ${
-                  isCurrent ? 'border-terracotta' : 'border-line hover:border-terracotta/70'
+                className={`group overflow-hidden rounded-lg border bg-cream text-left transition-transform hover:-translate-y-1 ${
+                  isCurrent ? 'border-terracotta' : 'border-line-control hover:border-terracotta'
                 }`}
                 onClick={() => playSong(song)}
               >
                 <div className="relative aspect-[4/5] overflow-hidden bg-ink">
                   <img
                     src={song.coverUrl}
-                    alt={song.title}
+                    alt=""
                     loading="lazy"
                     decoding="async"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-ink/0 transition-colors group-hover:bg-ink/35">
-                    <span className="flex h-16 w-16 scale-90 items-center justify-center rounded-full bg-cream text-ink opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                    <span className="flex h-16 w-16 scale-90 items-center justify-center rounded-full bg-cream text-ink opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100">
                       <span className="material-symbols-outlined text-4xl" aria-hidden="true">
                         {isCurrent && isPlaying ? 'pause' : 'play_arrow'}
                       </span>
@@ -123,7 +128,7 @@ const Library: React.FC = () => {
                       <p className="font-label text-xs font-bold uppercase tracking-[0.16em] text-terracotta">
                         {song.tags?.[0] || song.genre}
                       </p>
-                      <h2 className="mt-2 truncate font-headline text-3xl italic leading-none text-ink">
+                      <h2 className="mt-2 truncate font-body text-xl font-bold leading-tight text-ink">
                         {song.title}
                       </h2>
                     </div>
@@ -141,13 +146,13 @@ const Library: React.FC = () => {
         </section>
 
         {isSongsLoading && songs.length === 0 && (
-          <div className="rounded-2xl border border-line bg-cream py-20 text-center text-ink-muted">
+          <div role="status" className="rounded-lg border border-line bg-cream py-20 text-center text-ink-muted">
             Loading songs...
           </div>
         )}
 
         {songsError && !isSongsLoading && (
-          <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-red-200 bg-red-50 px-6 py-5 text-center text-red-700">
+          <div role="alert" className="mx-auto mt-8 max-w-xl rounded-lg border border-red-200 bg-red-50 px-6 py-5 text-center text-red-700">
             <p className="font-bold">Songs could not load</p>
             <p className="mt-1 text-sm">{songsError}</p>
             <button

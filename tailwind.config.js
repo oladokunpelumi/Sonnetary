@@ -4,7 +4,7 @@ export default {
     './index.html',
     './index.tsx',
     './App.tsx',
-    './{pages,components,contexts,services}/**/*.{ts,tsx}',
+    './{pages,components,contexts,services,hooks,lib}/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
@@ -29,18 +29,21 @@ export default {
           soft: '#F0DCA8',
           pale: '#FBF0CF',
         },
+        'gold-readable': '#6F521F',
         ink: {
           DEFAULT: '#1F1B14',
           soft: '#5A4F3F',
-          muted: '#8B7F6C',
+          muted: '#6F6250',
+          faint: '#8B7F6C',
         },
         line: {
           DEFAULT: '#E5DDD0',
           strong: '#C7BDA8',
+          control: '#8B7F6C',
         },
         canvas: '#FAF6EE',
         'on-surface': '#1F1B14',
-        'on-surface-variant': '#8B7F6C',
+        'on-surface-variant': '#6F6250',
         'outline-variant': '#C7BDA8',
 
         primary: {

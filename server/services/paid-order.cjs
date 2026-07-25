@@ -65,19 +65,21 @@ async function createPaidOrder({
         INSERT INTO orders (
             id, tracking_token, song_title, genre, mood, tempo, occasion, occasion_detail, story,
             status, created_at, delivery_date,
-            stripe_session_id, paystack_reference, amount, customer_email,
+            stripe_session_id, paystack_reference, amount, currency, fast_delivery, customer_email,
             recipient_type, recipient_name, sender_name, voice_gender,
             special_qualities, favorite_memories, special_message,
             promo_code_id, promo_code_preview, promo_discount_percent,
             original_amount, discounted_amount
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
         id, trackingToken, songTitle, genre, fallback.mood || '', fallback.tempo || 100,
         occasion, occasionDetail, fallback.story || '', 'in_production', createdAt, deliveryDate,
         referenceColumn === 'stripe_session_id' ? reference : null,
         referenceColumn === 'paystack_reference' ? reference : null,
         verifiedAmount,
+        currency,
+        fastDelivery ? 1 : 0,
         customerEmail,
         recipientType, recipientName, senderName,
         voiceGender, specialQualities, favoriteMemories, specialMessage,

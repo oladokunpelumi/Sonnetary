@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Loader2, Mail } from 'lucide-react';
+import { useModalDialog } from '../hooks/useModalDialog';
+import { useOverlay } from '../contexts/OverlayContext';
 
 interface TrackOrderModalProps {
   isOpen: boolean;
@@ -23,43 +25,26 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
   const [needsEmail, setNeedsEmail] = useState(false);
   const [modalState, setModalState] = useState<ModalState>('input');
   const [errorMessage, setErrorMessage] = useState('');
-  const dialogRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const lookupEmailRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+  const { setLayerOpen } = useOverlay();
+
+  const handleClose = useCallback(() => {
+    setIdentifier('');
+    setLookupEmail('');
+    setNeedsEmail(false);
+    setModalState('input');
+    setErrorMessage('');
+    onClose();
+  }, [onClose]);
+
+  const dialogRef = useModalDialog({ isOpen, onClose: handleClose, initialFocusRef: inputRef });
 
   useEffect(() => {
-    if (!isOpen) return;
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.setTimeout(() => inputRef.current?.focus(), 0);
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') handleClose();
-      if (event.key !== 'Tab') return;
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      if (!focusable?.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      restoreFocusRef.current?.focus();
-    };
-  }, [isOpen]);
+    setLayerOpen('task-dialog', isOpen);
+    return () => setLayerOpen('task-dialog', false);
+  }, [isOpen, setLayerOpen]);
 
   if (!isOpen) return null;
 
@@ -68,6 +53,7 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
     const value = identifier.trim().replace(/^#/, '');
     if (!value) {
       setErrorMessage('Please enter an Order ID or Email.');
+      inputRef.current?.focus();
       return;
     }
 
@@ -98,7 +84,7 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
     if (FULL_UUID_RE.test(value)) {
       // A full order ID is an unguessable capability — open it directly.
       sessionStorage.setItem('yourgbedu_track_id', value);
-      onClose();
+      handleClose();
       navigate(`/track?id=${encodeURIComponent(value)}`);
       return;
     }
@@ -107,11 +93,13 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
     // email for an instant lookup — no inbox round-trip needed.
     if (!needsEmail) {
       setNeedsEmail(true);
+      window.setTimeout(() => lookupEmailRef.current?.focus(), 0);
       return;
     }
     const email = lookupEmail.trim();
     if (!email.includes('@')) {
       setErrorMessage('Enter the email you used on the order.');
+      lookupEmailRef.current?.focus();
       return;
     }
     setModalState('sending');
@@ -128,22 +116,13 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
       }
       const order = await res.json();
       sessionStorage.setItem('yourgbedu_track_id', order.id);
-      onClose();
+      handleClose();
       const tokenParam = order.trackingToken ? `&t=${encodeURIComponent(order.trackingToken)}` : '';
       navigate(`/track?id=${encodeURIComponent(order.id)}${tokenParam}`);
     } catch {
       setModalState('input');
       setErrorMessage('Network error. Please try again.');
     }
-  };
-
-  const handleClose = () => {
-    setIdentifier('');
-    setLookupEmail('');
-    setNeedsEmail(false);
-    setModalState('input');
-    setErrorMessage('');
-    onClose();
   };
 
   return ReactDOM.createPortal(
@@ -153,22 +132,24 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
     >
       <div
         ref={dialogRef}
-        className="relative w-full max-w-md rounded-2xl border border-line bg-cream p-6 shadow-[0_18px_44px_rgba(31,27,20,0.2)]"
+        tabIndex={-1}
+        className="relative max-h-[calc(100svh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-line bg-cream p-6 shadow-[0_18px_44px_rgba(31,27,20,0.2)]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="track-order-title"
       >
         <button
+          type="button"
           onClick={handleClose}
-          className="absolute right-4 top-4 text-ink-muted transition-colors hover:text-ink"
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-line-control text-ink-muted transition-colors hover:border-terracotta hover:text-ink"
           aria-label="Close order tracking"
         >
           <X className="w-5 h-5" />
         </button>
 
         {modalState === 'sent' ? (
-          <div className="text-center py-4 flex flex-col items-center gap-4">
+          <div role="status" className="text-center py-4 flex flex-col items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sage-pale">
               <Mail className="h-8 w-8 text-sage-dark" />
             </div>
@@ -180,6 +161,7 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
               way. Open it to view every order attached to that email.
             </p>
             <button
+              type="button"
               onClick={handleClose}
               className="mt-2 font-label text-sm font-bold text-terracotta underline hover:text-terracotta-dark"
             >
@@ -202,10 +184,16 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
 
             <form onSubmit={handleTrack} className="space-y-4">
               <div>
+                <label htmlFor="track-order-identifier" className="mb-2 block text-sm font-semibold text-ink">
+                  Order ID or email address
+                </label>
                 <input
+                  id="track-order-identifier"
                   ref={inputRef}
-                  aria-label="Order ID or email address"
                   type="text"
+                  autoComplete="email"
+                  aria-invalid={Boolean(errorMessage)}
+                  aria-describedby={`track-order-help${errorMessage ? ' track-order-error' : ''}`}
                   value={identifier}
                   onChange={(e) => {
                     setIdentifier(e.target.value);
@@ -213,29 +201,38 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
                     if (modalState === 'error') setModalState('input');
                   }}
                   placeholder="Order ID or email@example.com"
-                  className="w-full rounded-xl border border-line bg-ivory px-4 py-3.5 font-body text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10"
+                  className="w-full rounded-xl border border-line-control bg-ivory px-4 py-3.5 font-body text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10"
                 />
+                <p id="track-order-help" className="mt-2 px-1 text-sm leading-6 text-ink-muted">
+                  Use the full ID from your receipt, or enter your email to request a secure sign-in link.
+                </p>
                 {needsEmail && !identifier.includes('@') && (
                   <div className="mt-3">
+                    <label htmlFor="track-order-email" className="mb-2 block text-sm font-semibold text-ink">
+                      Email used on the order
+                    </label>
                     <input
-                      aria-label="Email used on the order"
+                      id="track-order-email"
+                      ref={lookupEmailRef}
                       type="email"
+                      autoComplete="email"
+                      aria-invalid={Boolean(errorMessage)}
+                      aria-describedby={`track-order-email-help${errorMessage ? ' track-order-error' : ''}`}
                       value={lookupEmail}
                       onChange={(e) => {
                         setLookupEmail(e.target.value);
                         setErrorMessage('');
                       }}
                       placeholder="Email used on the order"
-                      autoFocus
-                      className="w-full rounded-xl border border-line bg-ivory px-4 py-3.5 font-body text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10"
+                      className="w-full rounded-xl border border-line-control bg-ivory px-4 py-3.5 font-body text-ink placeholder:text-ink-muted transition-colors focus:border-terracotta focus:bg-cream focus:outline-none focus:ring-4 focus:ring-terracotta/10"
                     />
-                    <p className="mt-2 px-1 text-xs leading-5 text-ink-muted">
+                    <p id="track-order-email-help" className="mt-2 px-1 text-sm leading-6 text-ink-muted">
                       Short order numbers need the matching email — no sign-in link required.
                     </p>
                   </div>
                 )}
                 {errorMessage && (
-                  <p className="mt-2 px-1 text-sm text-red-700">{errorMessage}</p>
+                  <p id="track-order-error" role="alert" className="mt-2 px-1 text-sm font-medium text-red-700">{errorMessage}</p>
                 )}
               </div>
 
@@ -245,7 +242,7 @@ const TrackOrderModal: React.FC<TrackOrderModalProps> = ({ isOpen, onClose }) =>
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3.5 font-label text-sm font-bold uppercase tracking-[0.14em] text-cream transition-colors hover:bg-terracotta disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {modalState === 'sending' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /><span className="sr-only">Sending request</span></>
                 ) : identifier.includes('@') ? (
                   'Send Sign-in Link'
                 ) : needsEmail ? (

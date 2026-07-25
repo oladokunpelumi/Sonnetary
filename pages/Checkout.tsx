@@ -4,6 +4,7 @@ import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js';
 import { Currency, PaymentProvider, getDiscountedPriceByCurrency } from '../constants';
 import { fetchCheckoutConfig, reconcileCheckoutConfig } from '../services/checkoutProvider';
 import { trackEvent } from '../services/analytics';
+import { CHECKOUT_RECOVERY } from '../lib/error-copy';
 
 type CheckoutStatus = 'loading' | 'ready' | 'processing' | 'success' | 'error';
 
@@ -671,7 +672,7 @@ const Checkout: React.FC = () => {
   return (
     <div className="bg-ivory px-5 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto grid min-h-[calc(100vh-96px)] max-w-6xl gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="self-start rounded-2xl border border-line bg-cream p-6">
+        <aside className="self-start rounded-lg border border-line bg-cream p-6">
           <p className="editorial-kicker">Secure checkout</p>
           <h1 className="mt-4 font-headline text-5xl font-medium leading-none text-ink">
             Finish your <em className="text-terracotta">song order</em>
@@ -682,13 +683,13 @@ const Checkout: React.FC = () => {
 
           {brief && price && (
             <>
-              <div className="mt-8 rounded-2xl border border-line bg-ivory p-5">
+              <div className="mt-8 rounded-lg border border-line bg-ivory p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
                       Total
                     </p>
-                    <p className="mt-1 font-headline text-4xl font-semibold text-ink">
+                    <p className="mt-1 font-mono text-3xl font-bold text-ink">
                       {displayTotal}
                     </p>
                     {displayOriginal && (
@@ -704,10 +705,20 @@ const Checkout: React.FC = () => {
                     ? `Built and delivered in 24 hours via ${providerLabel}.`
                     : `Built and delivered in 48 hours via ${providerLabel}.`}
                 </p>
+                <dl className="mt-5 space-y-3 border-t border-line pt-4 text-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="font-semibold text-ink">After payment</dt>
+                    <dd className="max-w-[190px] text-right text-ink-soft">Confirmation, order setup, then secure tracking by email</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="font-semibold text-ink">Support</dt>
+                    <dd><a className="font-semibold text-terracotta underline" href="mailto:hello@yourgbedu.com">hello@yourgbedu.com</a></dd>
+                  </div>
+                </dl>
               </div>
 
               <form
-                className="mt-4 rounded-2xl border border-line bg-ivory p-4"
+                className="mt-4 rounded-lg border border-line bg-ivory p-4"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void applyPromoCode();
@@ -723,14 +734,14 @@ const Checkout: React.FC = () => {
                     value={promoCode}
                     onChange={(event) => setPromoCode(event.target.value)}
                     disabled={status === 'success' || isApplyingPromo}
-                    className="min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 py-2.5 font-body text-sm font-semibold uppercase text-ink placeholder:normal-case placeholder:text-ink-muted focus:border-terracotta focus:outline-none focus:ring-4 focus:ring-terracotta/10 disabled:opacity-60"
+                    className="min-w-0 flex-1 rounded-lg border border-line-control bg-cream px-3 py-2.5 font-body text-sm font-semibold uppercase text-ink placeholder:normal-case placeholder:text-ink-muted focus:border-terracotta focus:outline-none focus:ring-4 focus:ring-terracotta/10 disabled:opacity-60"
                     placeholder="Enter code"
                     autoComplete="off"
                   />
                   <button
                     type="submit"
                     disabled={isApplyingPromo || status === 'success'}
-                    className="inline-flex min-h-11 items-center justify-center rounded-xl bg-ink px-4 font-label text-xs font-bold uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg bg-ink px-4 font-label text-xs font-bold uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isApplyingPromo ? 'Applying' : 'Apply'}
                   </button>
@@ -792,7 +803,7 @@ const Checkout: React.FC = () => {
           )}
         </aside>
 
-        <section className="rounded-2xl border border-line bg-cream p-5 sm:p-8">
+        <section className="rounded-lg border border-line bg-cream p-5 sm:p-8">
           <div className="mb-6 flex flex-col gap-3 border-b border-line pb-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="editorial-kicker">{providerLabel} payment</p>
@@ -808,7 +819,7 @@ const Checkout: React.FC = () => {
             </div>
           </div>
 
-          <div role="status" className="mb-5 rounded-xl border border-line bg-ivory px-4 py-3 text-sm text-ink-soft">
+          <div role="status" className="mb-5 rounded-lg border border-line bg-ivory px-4 py-3 text-sm text-ink-soft">
             {message}
           </div>
 
@@ -834,11 +845,11 @@ const Checkout: React.FC = () => {
               {displayBrief?.paymentProvider === 'stripe' ? (
                 <div
                   ref={stripeMountRef}
-                  className="min-h-[520px] overflow-hidden rounded-2xl border border-line bg-white p-2"
+                  className="min-h-[520px] overflow-hidden rounded-lg border border-line bg-white p-2"
                   aria-label="Stripe embedded checkout"
                 />
               ) : (
-                <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-line bg-ivory px-6 text-center">
+                <div className="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-line bg-ivory px-6 text-center">
                   <span className="material-symbols-outlined text-6xl text-terracotta" aria-hidden="true">
                     payments
                   </span>
@@ -860,8 +871,9 @@ const Checkout: React.FC = () => {
               )}
 
               {status === 'error' && (
-                <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+                <div role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                   <p className="mb-3">{message}</p>
+                  <p className="mb-3 font-normal leading-6">{CHECKOUT_RECOVERY.verification}</p>
                   <button
                     type="button"
                     onClick={() => void restartCheckout(activePromoCode)}

@@ -45,7 +45,7 @@ const Verify: React.FC = () => {
 
   if (status === 'verifying') {
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-6 bg-ivory px-6 text-center">
+      <div role="status" className="flex min-h-[80vh] flex-col items-center justify-center gap-6 bg-ivory px-6 text-center">
         <span className="material-symbols-outlined text-6xl text-terracotta animate-spin" aria-hidden="true">
           progress_activity
         </span>
@@ -57,7 +57,7 @@ const Verify: React.FC = () => {
 
   if (status === 'success') {
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-6 bg-ivory px-6 text-center">
+      <div role="status" className="flex min-h-[80vh] flex-col items-center justify-center gap-6 bg-ivory px-6 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sage-pale text-sage-dark">
           <span className="material-symbols-outlined text-4xl" aria-hidden="true">task_alt</span>
         </div>
@@ -68,7 +68,7 @@ const Verify: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center gap-6 bg-ivory px-6 text-center">
+    <div role="alert" className="flex min-h-[80vh] flex-col items-center justify-center gap-6 bg-ivory px-6 text-center">
       <span className="material-symbols-outlined text-7xl text-red-600" aria-hidden="true">
         link_off
       </span>

@@ -20,12 +20,6 @@ const loginLimiter = rateLimit({
     skipSuccessfulRequests: true,
 });
 
-let db;
-function getDb() {
-    if (!db) db = require('../db.cjs');
-    return db;
-}
-
 let emailModule;
 function getEmailModule() {
     if (!emailModule) emailModule = require('../email.cjs');
@@ -70,6 +64,8 @@ function toProductionJson(order) {
         status: order.status,
         paymentReference: order.paystack_reference || order.stripe_session_id || null,
         amount: order.amount,
+        currency: order.currency || 'ngn',
+        fastDelivery: Boolean(order.fast_delivery),
         promo: {
             codePreview: order.promo_code_preview || null,
             discountPercent: order.promo_discount_percent || null,
@@ -235,11 +231,18 @@ router.get('/orders/export', requireAdmin, async (req, res) => {
 router.get('/stats', requireAdmin, async (req, res) => {
     try {
         const ordersRow = await getOne('SELECT COUNT(*) as count FROM orders');
-        const revenueRow = await getOne('SELECT SUM(amount) as total FROM orders');
+        // Amounts are currency-specific integers (kobo vs cents) — summing across
+        // currencies would produce a meaningless number, so revenue is grouped.
+        const revenueRows = await getAll("SELECT COALESCE(currency, 'ngn') as currency, SUM(amount) as total FROM orders GROUP BY COALESCE(currency, 'ngn')");
         const songsRow = await getOne('SELECT COUNT(*) as count FROM songs');
+        const revenueByCurrency = { ngn: 0, usd: 0 };
+        for (const row of revenueRows) {
+            const currency = row.currency === 'usd' ? 'usd' : 'ngn';
+            revenueByCurrency[currency] = Number(row.total ?? 0);
+        }
         res.json({
             totalOrders: Number(ordersRow?.count ?? 0),
-            totalRevenue: Number(revenueRow?.total ?? 0),
+            revenueByCurrency,
             songCount: Number(songsRow?.count ?? 0),
         });
     } catch (err) {
