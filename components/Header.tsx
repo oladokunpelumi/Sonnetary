@@ -66,46 +66,42 @@ const Header: React.FC = () => {
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-line bg-ivory/88 backdrop-blur-xl">
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex min-w-0 items-center" aria-label="YourGbedu home">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          {/* Logo on Left */}
+          <Link to="/" className="flex shrink-0 items-center" aria-label="YourGbedu home">
             <BrandLogo
               variant="icon"
               tone="fullColor"
-              className="h-10 w-10 lg:hidden"
+              className="h-9 w-9 lg:hidden"
             />
             <BrandLogo
               tone="fullColor"
-              className="hidden h-14 w-[260px] lg:inline-flex"
+              className="hidden h-11 w-auto lg:inline-flex"
             />
           </Link>
 
-          {/* Desktop nav. Breakpoint matches the logo swap below (lg) rather than
-              md — between md and lg there's only the small icon logo to offset
-              three nav items plus the CTA, which is the tightest combination and
-              the first to overlap under a browser text-zoom / reflow test. */}
-          <nav className="hidden items-center space-x-10 lg:flex">
-            <Link to="/" className={`whitespace-nowrap ${navLinkClass('/')}`}>
-              Home
-            </Link>
-            <Link to="/library" className={`whitespace-nowrap ${navLinkClass('/library')}`}>
-              Catalogue
-            </Link>
-            <button
-              type="button"
-              onClick={openTrackModal}
-              className="whitespace-nowrap border-b border-transparent pb-1 font-label text-sm font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors duration-200 hover:border-terracotta/40 hover:text-terracotta"
-            >
-              Track Order
-            </button>
-          </nav>
+          {/* Combined Navigation and Action Button on Right */}
+          <div className="hidden items-center gap-8 lg:flex xl:gap-10">
+            <nav className="flex items-center gap-8 xl:gap-10" aria-label="Main navigation">
+              <Link to="/" className={`whitespace-nowrap ${navLinkClass('/')}`}>
+                Home
+              </Link>
+              <Link to="/library" className={`whitespace-nowrap ${navLinkClass('/library')}`}>
+                Catalogue
+              </Link>
+              <button
+                type="button"
+                onClick={openTrackModal}
+                className="whitespace-nowrap border-b border-transparent pb-1 font-label text-sm font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors duration-200 hover:border-terracotta/40 hover:text-terracotta"
+              >
+                Track Order
+              </button>
+            </nav>
 
-          {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center space-x-6">
             <Link
               to="/create"
-              className="whitespace-nowrap rounded-full bg-ink px-7 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta"
+              className="whitespace-nowrap rounded-full bg-ink px-7 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2"
             >
               Create Your Song
             </Link>
