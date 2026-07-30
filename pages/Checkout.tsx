@@ -2,11 +2,15 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js';
 import { Currency, PaymentProvider, getDiscountedPriceByCurrency } from '../constants';
-import { fetchCheckoutConfig, reconcileCheckoutConfig } from '../services/checkoutProvider';
+import {
+  fetchCheckoutConfig,
+  reconcileCheckoutConfig,
+  type CheckoutPaymentMethod,
+} from '../services/checkoutProvider';
 import { trackEvent } from '../services/analytics';
 import { CHECKOUT_RECOVERY } from '../lib/error-copy';
 
-type CheckoutStatus = 'loading' | 'ready' | 'processing' | 'success' | 'error';
+type CheckoutStatus = 'loading' | 'ready' | 'processing' | 'pending' | 'success' | 'error';
 
 const FULL_PRICE_STORAGE_KEY = 'yourgbedu_pay_full_price';
 const BRIEF_DRAFT_STORAGE_KEY = 'yourgbedu_brief_draft';
@@ -175,7 +179,10 @@ const Checkout: React.FC = () => {
   const [brief, setBrief] = useState<CheckoutBrief | null>(() => readBrief());
   const [status, setStatus] = useState<CheckoutStatus>('loading');
   const [message, setMessage] = useState('Preparing secure checkout...');
+  const [errorRecovery, setErrorRecovery] = useState(CHECKOUT_RECOVERY.preparation);
   const [providerResolved, setProviderResolved] = useState(false);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<CheckoutPaymentMethod[]>(['card']);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>('card');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [trackingToken, setTrackingToken] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState('');
@@ -197,9 +204,11 @@ const Checkout: React.FC = () => {
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const returnedStripeSessionId = query.get('session_id');
   const displayBrief = brief && !providerResolved && !returnedStripeSessionId
-    ? { ...brief, paymentProvider: 'paystack' as PaymentProvider, currency: 'ngn' as Currency }
+    ? { ...brief, paymentProvider: 'stripe' as PaymentProvider, currency: 'ngn' as Currency }
     : brief;
-  const providerLabel = displayBrief?.paymentProvider === 'stripe' ? 'Stripe' : 'Paystack';
+  const providerLabel = returnedStripeSessionId || selectedPaymentMethod === 'card' ? 'Stripe' : 'Paystack';
+  const isNigerianSplitCheckout = displayBrief?.currency === 'ngn'
+    && availablePaymentMethods.includes('bank_transfer');
   const price = displayBrief ? getDiscountedPriceByCurrency(displayBrief.currency, displayBrief.fastDelivery) : null;
   const isFullPriceCheckout = payFullPrice && !promoQuote?.promo;
   const displayTotal = displayBrief && promoQuote
@@ -299,26 +308,40 @@ const Checkout: React.FC = () => {
 
   const verifyPaystack = useCallback(
     async (reference: string) => {
+      setErrorRecovery(CHECKOUT_RECOVERY.verification);
       setStatus('processing');
       setMessage('Verifying Paystack payment...');
       const verifyRes = await fetch(`/api/paystack/verify/${encodeURIComponent(reference)}`);
       const verifyData = await verifyRes.json().catch(() => null);
       if (!verifyRes.ok) throw new Error(getApiError(verifyData, 'Paystack verification failed.'));
-      if (!verifyData.paid) throw new Error(verifyData.message || 'Paystack has not confirmed this payment yet.');
+      if (!verifyData.paid) {
+        setStatus('pending');
+        setMessage('Paystack is confirming your bank transfer. Production will start only after payment is verified.');
+        return false;
+      }
       await createOrderFromPayment('paystack', reference, verifyData);
+      return true;
     },
     [createOrderFromPayment]
   );
 
   const verifyStripe = useCallback(
     async (sessionId: string) => {
+      setErrorRecovery(CHECKOUT_RECOVERY.verification);
       setStatus('processing');
       setMessage('Verifying Stripe payment...');
       const verifyRes = await fetch(`/api/verify-session/${encodeURIComponent(sessionId)}`);
       const verifyData = await verifyRes.json().catch(() => null);
       if (!verifyRes.ok) throw new Error(getApiError(verifyData, 'Stripe verification failed.'));
-      if (!verifyData.paid) throw new Error('Stripe has not confirmed this payment yet.');
+      if (!verifyData.paid) {
+        stripeCheckoutRef.current?.destroy();
+        stripeCheckoutRef.current = null;
+        setStatus('pending');
+        setMessage('Stripe is confirming your payment. Production will start only after the payment is marked paid.');
+        return false;
+      }
       await createOrderFromPayment('stripe', sessionId, verifyData);
+      return true;
     },
     [createOrderFromPayment]
   );
@@ -368,6 +391,7 @@ const Checkout: React.FC = () => {
   const startPaystackCheckout = useCallback(async (code = '') => {
     if (!brief) return;
 
+    setErrorRecovery(CHECKOUT_RECOVERY.preparation);
     setMessage('Preparing Paystack checkout...');
     setPaystackInline(null);
     const response = await fetch('/api/paystack/initialize', {
@@ -397,12 +421,13 @@ const Checkout: React.FC = () => {
       reference: data.reference,
     });
     setStatus('ready');
-    setMessage('Your payment is encrypted and processed by Paystack. YourGbedu never stores card details.');
+    setMessage('Pay by bank transfer in Paystack’s secure checkout. Production starts only after confirmation.');
   }, [brief, payFullPrice]);
 
   const launchPaystackCheckout = useCallback(() => {
     if (!paystackInline) return;
     if (!window.PaystackPop) {
+      setErrorRecovery(CHECKOUT_RECOVERY.provider);
       setStatus('error');
       setMessage('Paystack checkout is not ready. Please refresh and try again.');
       return;
@@ -421,6 +446,7 @@ const Checkout: React.FC = () => {
         setMessage('Payment was cancelled. You can try again when ready.');
       },
       onError: (error) => {
+        setErrorRecovery(CHECKOUT_RECOVERY.provider);
         setStatus('error');
         setMessage(error.message || 'Paystack checkout failed. Please try again.');
       },
@@ -456,6 +482,7 @@ const Checkout: React.FC = () => {
   const startStripeCheckout = useCallback(async (code = '') => {
     if (!brief) return;
 
+    setErrorRecovery(CHECKOUT_RECOVERY.preparation);
     setMessage('Preparing Stripe checkout...');
     stripeCheckoutRef.current?.destroy();
     stripeCheckoutRef.current = null;
@@ -495,7 +522,11 @@ const Checkout: React.FC = () => {
     if (stripeMountRef.current) {
       embeddedCheckout.mount(stripeMountRef.current);
       setStatus('ready');
-      setMessage('Your payment is encrypted and processed by Stripe. YourGbedu never stores card details.');
+      setMessage(
+        brief.currency === 'ngn'
+          ? 'Pay securely by card with Stripe. To transfer from a Nigerian bank, choose Bank transfer above.'
+          : 'Your payment is encrypted and processed by Stripe. YourGbedu never stores card details.'
+      );
     }
   }, [brief, payFullPrice, verifyStripe]);
 
@@ -503,10 +534,50 @@ const Checkout: React.FC = () => {
     async (code = '') => {
       if (!brief) return;
       setStatus('loading');
-      const start = brief.paymentProvider === 'stripe' ? startStripeCheckout : startPaystackCheckout;
+      const start = selectedPaymentMethod === 'card' ? startStripeCheckout : startPaystackCheckout;
       await start(code);
     },
-    [brief, startPaystackCheckout, startStripeCheckout]
+    [brief, selectedPaymentMethod, startPaystackCheckout, startStripeCheckout]
+  );
+
+  const selectPaymentMethod = useCallback(
+    (method: CheckoutPaymentMethod) => {
+      if (!brief || method === selectedPaymentMethod) return;
+      if (!availablePaymentMethods.includes(method)) return;
+
+      stripeCheckoutRef.current?.destroy();
+      stripeCheckoutRef.current = null;
+      setPaystackInline(null);
+      setSelectedPaymentMethod(method);
+      setStatus('loading');
+      setErrorRecovery(CHECKOUT_RECOVERY.preparation);
+
+      const provider: PaymentProvider = method === 'card' ? 'stripe' : 'paystack';
+      setBrief((current) => {
+        if (!current) return current;
+        const next = { ...current, paymentProvider: provider };
+        saveBrief(next);
+        return next;
+      });
+
+      // Wait for React to render the newly selected provider surface before
+      // mounting Stripe Checkout or preparing the Paystack popup.
+      window.requestAnimationFrame(() => {
+        const start = method === 'card' ? startStripeCheckout : startPaystackCheckout;
+        void start(activePromoCode).catch((err) => {
+          setStatus('error');
+          setMessage(err instanceof Error ? err.message : 'Could not switch payment method.');
+        });
+      });
+    },
+    [
+      activePromoCode,
+      availablePaymentMethods,
+      brief,
+      selectedPaymentMethod,
+      startPaystackCheckout,
+      startStripeCheckout,
+    ]
   );
 
   const applyPromoCode = useCallback(async () => {
@@ -525,7 +596,7 @@ const Checkout: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           promoCode: code,
-          paymentProvider: brief.paymentProvider,
+          paymentProvider: selectedPaymentMethod === 'card' ? 'stripe' : 'paystack',
           currency: brief.currency,
           fastDelivery: brief.fastDelivery,
           fullPrice: false,
@@ -558,7 +629,7 @@ const Checkout: React.FC = () => {
     } finally {
       setIsApplyingPromo(false);
     }
-  }, [brief, createFreeOrder, promoCode, restartCheckout]);
+  }, [brief, createFreeOrder, promoCode, restartCheckout, selectedPaymentMethod]);
 
   const removePromoCode = useCallback(async () => {
     setPromoCode('');
@@ -579,6 +650,8 @@ const Checkout: React.FC = () => {
       const config = await fetchCheckoutConfig();
 
       if (cancelled) return;
+      setAvailablePaymentMethods(config.paymentMethods.length ? config.paymentMethods : ['card']);
+      setSelectedPaymentMethod('card');
       setBrief((current) => {
         if (!current) return current;
         const next = reconcileCheckoutConfig(current, config);
@@ -627,8 +700,7 @@ const Checkout: React.FC = () => {
       currency: brief.currency.toUpperCase(),
       fast_delivery: brief.fastDelivery,
     });
-    const start = brief.paymentProvider === 'stripe' ? startStripeCheckout : startPaystackCheckout;
-    void start().catch((err) => {
+    void startStripeCheckout().catch((err) => {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : 'Could not start checkout.');
     });
@@ -678,7 +750,8 @@ const Checkout: React.FC = () => {
             Finish your <em className="text-terracotta">song order</em>
           </h1>
           <p className="mt-4 text-sm leading-6 text-ink-soft">
-            Your payment is encrypted and processed by {providerLabel}. YourGbedu never stores card details.
+            Card payments are processed by Stripe. Nigerian bank transfers are processed by Paystack for
+            YourGbedu. YourGbedu never stores card or bank-login details.
           </p>
 
           {brief && price && (
@@ -702,8 +775,8 @@ const Checkout: React.FC = () => {
                 </div>
                 <p className="mt-3 text-sm text-ink-soft">
                   {brief.fastDelivery
-                    ? `Built and delivered in 24 hours via ${providerLabel}.`
-                    : `Built and delivered in 48 hours via ${providerLabel}.`}
+                    ? 'Built and delivered in 24 hours after confirmed payment.'
+                    : 'Built and delivered in 48 hours after confirmed payment.'}
                 </p>
                 <dl className="mt-5 space-y-3 border-t border-line pt-4 text-sm">
                   <div className="flex items-start justify-between gap-4">
@@ -819,6 +892,73 @@ const Checkout: React.FC = () => {
             </div>
           </div>
 
+          {isNigerianSplitCheckout && status !== 'success' && status !== 'pending' && (
+            <fieldset
+              className="mb-5"
+              disabled={status === 'loading' || status === 'processing' || isApplyingPromo}
+            >
+              <legend className="font-label text-xs font-bold uppercase tracking-[0.16em] text-ink-muted">
+                Choose how to pay
+              </legend>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {([
+                  {
+                    id: 'card' as const,
+                    icon: 'credit_card',
+                    title: 'Card',
+                    detail: 'Visa, Mastercard or supported card',
+                    provider: 'Secured by Stripe',
+                  },
+                  {
+                    id: 'bank_transfer' as const,
+                    icon: 'account_balance',
+                    title: 'Bank Transfer',
+                    detail: 'Transfer from any supported Nigerian bank',
+                    provider: 'Processed by Paystack',
+                  },
+                ]).map((option) => {
+                  const selected = selectedPaymentMethod === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => selectPaymentMethod(option.id)}
+                      className={`group relative flex min-h-32 items-start gap-3 rounded-lg border p-4 text-left transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-terracotta/15 ${
+                        selected
+                          ? 'border-terracotta bg-terracotta-pale shadow-[0_10px_30px_rgba(179,82,47,0.08)]'
+                          : 'border-line bg-ivory hover:border-terracotta/50 hover:bg-cream'
+                      } disabled:cursor-wait disabled:opacity-60`}
+                    >
+                      <span
+                        className={`material-symbols-outlined mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl ${
+                          selected ? 'bg-terracotta text-cream' : 'bg-cream text-terracotta group-hover:bg-terracotta-pale'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {option.icon}
+                      </span>
+                      <span>
+                        <span className="block font-body text-base font-bold text-ink">{option.title}</span>
+                        <span className="mt-1 block text-sm leading-5 text-ink-soft">{option.detail}</span>
+                        <span className="mt-3 block font-label text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-muted">
+                          {option.provider}
+                        </span>
+                      </span>
+                      <span
+                        className={`absolute right-3 top-3 h-3 w-3 rounded-full border ${
+                          selected ? 'border-terracotta bg-terracotta ring-4 ring-terracotta/10' : 'border-line-control bg-cream'
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+
           <div role="status" className="mb-5 rounded-lg border border-line bg-ivory px-4 py-3 text-sm text-ink-soft">
             {message}
           </div>
@@ -840,9 +980,28 @@ const Checkout: React.FC = () => {
                 </Link>
               )}
             </div>
+          ) : status === 'pending' ? (
+            <div className="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-line bg-ivory px-6 text-center">
+              <span className="material-symbols-outlined text-7xl text-terracotta" aria-hidden="true">
+                pending
+              </span>
+              <h3 className="mt-5 font-headline text-5xl font-medium leading-none text-ink">
+                Payment confirmation pending
+              </h3>
+              <p className="mt-3 max-w-lg leading-7 text-ink-soft">
+                Do not make another payment. {providerLabel} will notify us when this payment is confirmed, and only
+                then will production begin. We will email your order and tracking details automatically.
+              </p>
+              <Link
+                to="/"
+                className="mt-7 rounded-full border border-line bg-cream px-6 py-3 font-label text-sm font-bold uppercase tracking-[0.12em] text-ink"
+              >
+                Return home
+              </Link>
+            </div>
           ) : (
             <>
-              {displayBrief?.paymentProvider === 'stripe' ? (
+              {selectedPaymentMethod === 'card' ? (
                 <div
                   ref={stripeMountRef}
                   className="min-h-[520px] overflow-hidden rounded-lg border border-line bg-white p-2"
@@ -857,15 +1016,23 @@ const Checkout: React.FC = () => {
                     Paystack checkout is ready
                   </h3>
                   <p className="mt-3 max-w-md text-ink-soft">
-                    Paystack may open a secure payment layer for card, bank transfer, USSD, or mobile authentication.
+                    A secure Paystack layer will show a temporary account for this order. Transfer the exact amount
+                    shown; YourGbedu starts production only after Paystack confirms it.
+                  </p>
+                  <p className="mt-3 max-w-md text-xs leading-5 text-ink-muted">
+                    Merchant: YourGbedu · Bank transfer only
                   </p>
                   <button
                     type="button"
                     onClick={launchPaystackCheckout}
-                    disabled={status === 'processing'}
+                    disabled={status !== 'ready' || !paystackInline}
                     className="mt-6 rounded-full bg-terracotta px-8 py-4 font-label text-sm font-bold uppercase tracking-[0.12em] text-cream transition-colors hover:bg-terracotta-dark disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {status === 'processing' ? 'Processing...' : `Pay ${displayTotal || ''}`}
+                    {status === 'processing'
+                      ? 'Confirming transfer…'
+                      : status === 'loading'
+                        ? 'Preparing bank transfer…'
+                        : `Pay ${displayTotal || ''}`}
                   </button>
                 </div>
               )}
@@ -873,10 +1040,15 @@ const Checkout: React.FC = () => {
               {status === 'error' && (
                 <div role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                   <p className="mb-3">{message}</p>
-                  <p className="mb-3 font-normal leading-6">{CHECKOUT_RECOVERY.verification}</p>
+                  <p className="mb-3 font-normal leading-6">{errorRecovery}</p>
                   <button
                     type="button"
-                    onClick={() => void restartCheckout(activePromoCode)}
+                    onClick={() => {
+                      void restartCheckout(activePromoCode).catch((err) => {
+                        setStatus('error');
+                        setMessage(err instanceof Error ? err.message : 'Could not restart checkout.');
+                      });
+                    }}
                     className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-4 py-2 font-label text-xs font-bold uppercase tracking-[0.12em] text-red-700 transition-colors hover:bg-red-200"
                   >
                     <span className="material-symbols-outlined text-sm" aria-hidden="true">refresh</span>

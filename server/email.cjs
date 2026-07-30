@@ -360,6 +360,45 @@ async function sendCompletionEmail({ to, orderId, trackingToken, genre, senderNa
 }
 
 /**
+ * Tell a customer that Stripe could not complete an asynchronous payment.
+ * No order exists yet, so the CTA returns them to their saved brief to retry.
+ */
+async function sendPaymentFailureEmail({ to, reference }) {
+  const { client: resend, reason } = getResendClientStatus();
+  if (!resend) return skippedEmailResult('payment_failed', to, reason);
+
+  const retryUrl = `${getClientUrl()}/#/create`;
+  const safeReference = escapeHtml(reference || 'Unavailable');
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:32px;background:#FAF6EE;color:#1F1B14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:32px;background:#FFFDF6;border:1px solid #E5DDD0;border-radius:18px;">
+    <h1 style="margin:0 0 16px;font-family:Georgia,serif;font-weight:500;">Your payment wasn’t completed</h1>
+    <p style="line-height:1.7;color:#5A4F3F;">Stripe could not confirm your payment, so no order was created and production has not started.</p>
+    <p style="line-height:1.7;color:#5A4F3F;">You can return to your saved song brief and try again. If your bank shows a debit, contact hello@yourgbedu.com before making another payment.</p>
+    <p style="font-size:12px;color:#8B7F6C;">Stripe reference: ${safeReference}</p>
+    <a href="${retryUrl}" style="display:block;margin-top:24px;padding:14px;background:#B3522F;color:#FFFDF6;text-decoration:none;border-radius:999px;text-align:center;font-weight:800;">Return to your song brief</a>
+  </div>
+</body>
+</html>`;
+
+  try {
+    const result = await resend.emails.send({
+      from: getFromEmail(),
+      to,
+      subject: 'Your YourGbedu payment needs attention',
+      html,
+    });
+    if (result.error) return failedEmailResult('payment_failed', to, 'resend_rejected', result.error);
+    return sentEmailResult('payment_failed', to, result);
+  } catch (err) {
+    return failedEmailResult('payment_failed', to, 'send_exception', err);
+  }
+}
+
+/**
  * Internal alert to the operator when a new order comes in. Sent via Resend to
  * ADMIN_EMAIL (never to the customer). No-op if ADMIN_EMAIL or Resend is unset.
  * @param {object} params
@@ -434,6 +473,7 @@ module.exports = {
   sendConfirmationEmail,
   sendMagicLinkEmail,
   sendCompletionEmail,
+  sendPaymentFailureEmail,
   sendAdminNewOrderEmail,
   getTrackUrl,
   getVerifyUrl,
