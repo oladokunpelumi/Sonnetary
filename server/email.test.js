@@ -38,6 +38,17 @@ describe('sendAdminNewOrderEmail', () => {
   });
 });
 
+describe('sendPaymentFailureEmail', () => {
+  it('skips safely when Resend is not configured', async () => {
+    vi.stubEnv('RESEND_API_KEY', 're_placeholder');
+    const res = await email.sendPaymentFailureEmail({
+      to: 'customer@example.com',
+      reference: 'cs_failed_test',
+    });
+    expect(res).toMatchObject({ ok: false, skipped: true, reason: 'resend_not_configured' });
+  });
+});
+
 describe('sendMagicLinkEmail diagnostics', () => {
   it('logs a dev preview URL when Resend is not configured outside production', async () => {
     vi.stubEnv('NODE_ENV', 'development');

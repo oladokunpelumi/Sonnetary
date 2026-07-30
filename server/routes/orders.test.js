@@ -37,7 +37,15 @@ beforeEach(() => {
   sendConfirmationEmailMock.mockClear();
   stripeRetrieveMock.mockReset();
   vi.stubGlobal('fetch', vi.fn(async () => ({
-    json: async () => ({ status: true, data: { status: 'success', amount: 3000000 } }),
+    json: async () => ({
+      status: true,
+      data: {
+        status: 'success',
+        amount: 3000000,
+        currency: 'NGN',
+        channel: 'bank_transfer',
+      },
+    }),
   })));
 });
 
@@ -138,7 +146,16 @@ describe('POST /api/orders', () => {
   it('rejects a verified payment amount that does not match checkout pricing', async () => {
     const { default: supertest } = await import('supertest');
     vi.stubGlobal('fetch', vi.fn(async () => ({
-      json: async () => ({ status: true, data: { status: 'success', amount: 1, metadata: { fastDelivery: 'false' } } }),
+      json: async () => ({
+        status: true,
+        data: {
+          status: 'success',
+          amount: 1,
+          currency: 'NGN',
+          channel: 'bank_transfer',
+          metadata: { fastDelivery: 'false' },
+        },
+      }),
     })));
 
     const res = await supertest(app)

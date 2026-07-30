@@ -1,5 +1,7 @@
 import type { Currency, PaymentProvider } from '../constants';
 
+export type CheckoutPaymentMethod = 'card' | 'bank_transfer';
+
 export interface GeoCountryResponse {
   country?: string;
   isNigeria?: boolean | null;
@@ -10,13 +12,13 @@ export interface CheckoutConfig {
   provider: PaymentProvider;
   currency: Currency;
   country?: string;
+  paymentMethods: CheckoutPaymentMethod[];
 }
 
 /**
- * Server-side source of truth for provider + currency. Replaces client-side
- * geo inference — the client can no longer pick its own currency/provider,
- * since that decision now also depends on the NGN_PAYMENT_PROVIDER env switch
- * (Paystack vs. Stripe-for-Naira), which only the server knows.
+ * Server-side source of truth for currency and available methods. The default
+ * provider is Stripe because Card is preselected; Nigerian customers can then
+ * explicitly choose the Paystack bank-transfer method returned by the server.
  */
 export async function fetchCheckoutConfig(): Promise<CheckoutConfig> {
   try {
@@ -28,19 +30,27 @@ export async function fetchCheckoutConfig(): Promise<CheckoutConfig> {
         provider: data.provider,
         currency: data.currency === 'usd' ? 'usd' : 'ngn',
         country: data.country,
+        paymentMethods: Array.isArray(data.paymentMethods)
+          ? data.paymentMethods.filter(
+              (method): method is CheckoutPaymentMethod => method === 'card' || method === 'bank_transfer'
+            )
+          : ['card'],
       };
     }
     throw new Error('checkout-config returned an unexpected shape');
   } catch {
-    // Fail open: Paystack/NGN, matching the server's own fail-open geo default.
-    return { provider: 'paystack', currency: 'ngn' };
+    // Fail open to the Nigerian price while keeping card on Stripe. The
+    // bank-transfer option is only shown after the server explicitly confirms
+    // it is available for this checkout.
+    return { provider: 'stripe', currency: 'ngn', paymentMethods: ['card'] };
   }
 }
 
 /** @deprecated Superseded by fetchCheckoutConfig — kept for the tests that
  * document the (now server-side) fail-open behavior. */
 export function paymentProviderFromGeo(data: GeoCountryResponse | null | undefined): PaymentProvider {
-  return data?.isNigeria === false ? 'stripe' : 'paystack';
+  void data;
+  return 'stripe';
 }
 
 export function reconcilePaymentProvider<T extends { paymentProvider: PaymentProvider }>(

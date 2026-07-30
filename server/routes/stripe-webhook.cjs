@@ -32,12 +32,52 @@ async function validateSessionAmount({ metadata, currency, amountTotal }) {
     return allowed.has(amountTotal);
 }
 
+async function createOrderForPaidSession(session) {
+    if (session.payment_status !== 'paid') return false;
+
+    const currency = normalizeCurrency(session.currency);
+    const metadata = session.metadata || {};
+    const amountValid = await validateSessionAmount({
+        metadata,
+        currency,
+        amountTotal: session.amount_total,
+    });
+    if (!amountValid) {
+        console.error('[Stripe Webhook] Amount/currency mismatch for session', session.id);
+        return false;
+    }
+
+    await createPaidOrder({
+        reference: session.id,
+        referenceColumn: 'stripe_session_id',
+        provider: 'stripe',
+        currency,
+        verifiedAmount: session.amount_total,
+        metadata: {
+            ...metadata,
+            customerEmail: metadata.customerEmail || session.customer_details?.email || session.customer_email,
+        },
+    });
+    return true;
+}
+
+async function notifyAsyncPaymentFailure(session) {
+    const email = session.metadata?.customerEmail || session.customer_details?.email || session.customer_email;
+    if (!email) {
+        console.warn('[Stripe Webhook] Async payment failed without a customer email for session', session.id);
+        return;
+    }
+    await require('../email.cjs').sendPaymentFailureEmail({
+        to: email,
+        reference: session.id,
+    });
+}
+
 // ── Stripe Webhook ────────────────────────────────────────────────────────────
 // This is the authoritative order-creator for Stripe payments — without it, a
-// customer who closes the tab right after paying (before the client calls
-// POST /api/orders) would have a paid session that never becomes an order.
-// Idempotent on stripe_session_id, so racing against the client-side fallback
-// is safe: whichever path runs first creates the order, the other is a no-op.
+// customer who closes the tab after paying would have a paid session that never
+// becomes an order. Both immediate and delayed confirmations use the same
+// idempotent paid-session path; unpaid/failed transfers never start production.
 router.post('/', async (req, res) => {
     const signature = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -60,42 +100,22 @@ router.post('/', async (req, res) => {
         return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    // Acknowledge immediately before doing heavier work.
-    res.sendStatus(200);
-
-    if (event.type === 'checkout.session.completed') {
-        void (async () => {
-            try {
-                const session = event.data.object;
-                if (session.payment_status !== 'paid') return;
-
-                const currency = normalizeCurrency(session.currency);
-                const metadata = session.metadata || {};
-                const amountValid = await validateSessionAmount({
-                    metadata,
-                    currency,
-                    amountTotal: session.amount_total,
-                });
-                if (!amountValid) {
-                    console.error('[Stripe Webhook] Amount/currency mismatch for session', session.id);
-                    return;
-                }
-
-                await createPaidOrder({
-                    reference: session.id,
-                    referenceColumn: 'stripe_session_id',
-                    provider: 'stripe',
-                    currency,
-                    verifiedAmount: session.amount_total,
-                    metadata: {
-                        ...metadata,
-                        customerEmail: metadata.customerEmail || session.customer_details?.email || session.customer_email,
-                    },
-                });
-            } catch (err) {
-                console.error('[Stripe Webhook] Error creating order:', err);
-            }
-        })();
+    try {
+        const session = event.data.object;
+        if (
+            event.type === 'checkout.session.completed'
+            || event.type === 'checkout.session.async_payment_succeeded'
+        ) {
+            await createOrderForPaidSession(session);
+        } else if (event.type === 'checkout.session.async_payment_failed') {
+            await notifyAsyncPaymentFailure(session);
+        }
+        return res.sendStatus(200);
+    } catch (err) {
+        // Returning a non-2xx response lets Stripe retry transient database or
+        // internal processing failures instead of silently losing the event.
+        console.error('[Stripe Webhook] Event processing failed:', err);
+        return res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
 

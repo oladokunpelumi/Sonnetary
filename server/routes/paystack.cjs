@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const uuidv4 = () => crypto.randomUUID();
 const { z } = require('zod');
 const { isFastDelivery } = require('../pricing.cjs');
 const { getClientUrlFromRequest } = require('../client-url.cjs');
 const { quoteCheckout, quoteMetadata, parsePromoMetadata } = require('../promos.cjs');
-const { getOne, execSql } = require('../db-helpers.cjs');
+const { createPaidOrder } = require('../services/paid-order.cjs');
 
 const InitializeSchema = z.object({
     email: z.string().email().optional().or(z.literal('')),
@@ -17,18 +16,6 @@ const InitializeSchema = z.object({
 });
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
-const STANDARD_DELIVERY_HOURS = 48;
-const FAST_DELIVERY_HOURS = 24;
-
-function makeTrackingToken() {
-    return crypto.randomBytes(16).toString('hex');
-}
-
-let emailModule;
-function getEmailModule() {
-    if (!emailModule) emailModule = require('../email.cjs');
-    return emailModule;
-}
 
 function getPaystackSecretKey() {
     return process.env.PAYSTACK_SECRET_KEY;
@@ -50,9 +37,71 @@ function buildCheckoutMetadata(metadata, customerEmail, quote) {
         specialQualities: safeMetadataValue(metadata.specialQualities),
         favoriteMemories: safeMetadataValue(metadata.favoriteMemories),
         specialMessage: safeMetadataValue(metadata.specialMessage),
+        recipientName: safeMetadataValue(metadata.recipientName),
         fastDelivery: isFastDelivery(metadata.fastDelivery) ? 'true' : 'false',
+        paymentMethod: 'bank_transfer',
         ...quoteMetadata(quote),
     };
+}
+
+async function fetchPaystackTransaction(reference) {
+    const paystackSecret = getPaystackSecretKey();
+    if (!paystackSecret) {
+        const error = new Error('Payment gateway not configured.');
+        error.statusCode = 503;
+        throw error;
+    }
+
+    const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/verify/${encodeURIComponent(reference)}`, {
+        method: 'GET',
+        headers: {
+            Authorization: `Bearer ${paystackSecret}`,
+            'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(8000),
+    });
+    const body = await response.json();
+    if (!response.ok || !body.status || !body.data) {
+        const error = new Error(body.message || 'Paystack could not verify this transaction.');
+        error.statusCode = response.status >= 400 ? response.status : 502;
+        throw error;
+    }
+    return body.data;
+}
+
+async function validatePaidBankTransfer(transaction) {
+    if (
+        transaction.status !== 'success'
+        || transaction.channel !== 'bank_transfer'
+        || String(transaction.currency || '').toLowerCase() !== 'ngn'
+        || typeof transaction.amount !== 'number'
+    ) {
+        return false;
+    }
+
+    const metadata = transaction.metadata || {};
+    const promo = parsePromoMetadata(metadata);
+    if (promo.currency && promo.currency !== 'ngn') return false;
+
+    const fastDelivery = metadata.fastDelivery;
+    const currentQuote = await quoteCheckout({ provider: 'paystack', currency: 'ngn', fastDelivery });
+    const fullQuote = await quoteCheckout({
+        provider: 'paystack',
+        currency: 'ngn',
+        fastDelivery,
+        fullPrice: true,
+    });
+    const allowedAmounts = new Set([
+        currentQuote.finalAmount,
+        fullQuote.finalAmount,
+        Math.round(fullQuote.originalAmount * 0.5),
+    ]);
+
+    if (Number.isFinite(promo.discountedAmount)) {
+        return allowedAmounts.has(promo.discountedAmount)
+            && transaction.amount === promo.discountedAmount;
+    }
+    return allowedAmounts.has(transaction.amount);
 }
 
 // ── Initialize a Paystack transaction ─────────────────────────────────────────
@@ -92,6 +141,7 @@ router.post('/initialize', async (req, res) => {
                 email: customerEmail,
                 amount,
                 currency: 'NGN',
+                channels: ['bank_transfer'],
                 callback_url: `${getClientUrlFromRequest(req)}/#/payment-success`,
                 metadata: buildCheckoutMetadata(resolvedMetadata, customerEmail, quote),
             }),
@@ -137,36 +187,42 @@ router.post('/initialize', async (req, res) => {
 router.get('/verify/:reference', async (req, res) => {
     try {
         const { reference } = req.params;
-        const paystackSecret = getPaystackSecretKey();
-        if (!paystackSecret) {
-            return res.status(503).json({ error: 'Payment gateway not configured.' });
+        const transaction = await fetchPaystackTransaction(reference);
+        if (transaction.status !== 'success') {
+            return res.json({
+                paid: false,
+                paymentStatus: transaction.status,
+                message: 'Paystack is still confirming your bank transfer.',
+            });
         }
 
-        const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${paystackSecret}`,
-                'Content-Type': 'application/json',
-            },
+        if (!(await validatePaidBankTransfer(transaction))) {
+            return res.status(402).json({
+                paid: false,
+                paymentStatus: transaction.status,
+                error: 'The confirmed payment does not match this bank-transfer checkout.',
+            });
+        }
+
+        return res.json({
+            paid: true,
+            paymentStatus: transaction.status,
+            amount: transaction.amount,
+            currency: 'ngn',
+            channel: transaction.channel,
+            customerEmail: transaction.customer?.email,
+            metadata: transaction.metadata || {},
         });
-
-        const data = await response.json();
-
-        if (data.status && data.data.status === 'success') {
-            res.json({ paid: true, amount: data.data.amount, metadata: data.data.metadata });
-        } else {
-            res.json({ paid: false, message: 'Transaction not successful' });
-        }
-    } catch {
-        console.error('Error verifying Paystack transaction');
-        res.status(500).json({ error: 'Failed to verify transaction' });
+    } catch (err) {
+        console.error('Error verifying Paystack transaction:', err.message);
+        res.status(err.statusCode || 500).json({ error: err.message || 'Failed to verify transaction' });
     }
 });
 
 // ── Paystack Webhook ──────────────────────────────────────────────────────────
 // Paystack signs webhooks with the merchant's secret key (same as PAYSTACK_SECRET_KEY).
 // https://paystack.com/docs/payments/webhooks/#verify-event-origin
-router.post('/webhook', (req, res) => {
+router.post('/webhook', async (req, res) => {
     const signature = req.headers['x-paystack-signature'];
     const paystackSecret = getPaystackSecretKey();
 
@@ -200,121 +256,50 @@ router.post('/webhook', (req, res) => {
         return res.status(400).json({ error: 'Invalid JSON body' });
     }
 
-    // Acknowledge immediately before doing heavy work
-    res.sendStatus(200);
-
-    if (event.event === 'charge.success') {
-        void (async () => {
-        const { reference, metadata, customer, amount } = event.data;
-        const promo = parsePromoMetadata(metadata || {});
-
-        const existing = await getOne('SELECT id FROM orders WHERE paystack_reference = ?', reference);
-        if (existing) {
-            console.log(`[Webhook] Order for reference already exists, skipping`);
-            return;
-        }
-
-        const id = uuidv4();
-        const trackingToken = makeTrackingToken();
-        const createdAt = new Date().toISOString();
-        const fastDelivery = isFastDelivery(metadata?.fastDelivery);
-        const actualDeliveryHours = fastDelivery
-            ? FAST_DELIVERY_HOURS
-            : STANDARD_DELIVERY_HOURS;
-        const deliveryDate = new Date(
-            Date.now() + actualDeliveryHours * 60 * 60 * 1000
-        ).toISOString();
-
-        try {
-            await execSql(`
-                INSERT INTO orders (
-                    id, tracking_token, song_title, genre, mood, tempo, occasion, occasion_detail, story, status,
-                    created_at, delivery_date, paystack_reference, amount, currency, fast_delivery,
-                    recipient_type, sender_name, voice_gender,
-                    special_qualities, favorite_memories, special_message, customer_email,
-                    promo_code_id, promo_code_preview, promo_discount_percent,
-                    original_amount, discounted_amount
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_production', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-                id,
-                trackingToken,
-                'Custom Song',
-                metadata?.genre || '',
-                '', 100,
-                metadata?.occasion || '',
-                metadata?.occasionDetail || '',
-                '',
-                createdAt,
-                deliveryDate,
-                reference,
-                amount,
-                'ngn', // Paystack only ever settles Naira
-                fastDelivery ? 1 : 0,
-                metadata?.recipientType || '',
-                metadata?.senderName || '',
-                metadata?.voiceGender || '',
-                metadata?.specialQualities || '',
-                metadata?.favoriteMemories || '',
-                metadata?.specialMessage || '',
-                (metadata?.customerEmail || customer?.email)
-                    ? String(metadata?.customerEmail || customer?.email).trim().toLowerCase()
-                    : null,
-                promo.promoCodeId,
-                promo.promoCodePreview,
-                promo.promoDiscountPercent,
-                promo.originalAmount,
-                promo.discountedAmount
-            );
-
-            console.log(`[Webhook] Order created`);
-            const order = await getOne('SELECT * FROM orders WHERE id = ?', id);
-            require('../services/song-pipeline.cjs').getSongPipeline().startGenerationInBackgroundForOrder(order);
-
-            const customerEmail = metadata?.customerEmail || customer?.email;
-            if (customerEmail) {
-                const klaviyo = require('../services/klaviyo.cjs');
-                void klaviyo.track('Placed Order', {
-                    email: customerEmail,
-                    value: typeof amount === 'number' ? Math.round(amount) / 100 : undefined,
-                    uniqueId: id,
-                    properties: {
-                        order_id: id,
-                        occasion: metadata?.occasion || null,
-                        genre: metadata?.genre || null,
-                        recipient_type: metadata?.recipientType || null,
-                        provider: 'paystack',
-                    },
-                    profileProps: metadata?.senderName ? { first_name: metadata.senderName } : {},
-                });
-
-                if (!klaviyo.klaviyoOwnsTransactional()) {
-                    getEmailModule().sendConfirmationEmail({
-                        to: customerEmail,
-                        orderId: id,
-                        trackingToken,
-                        genre: metadata?.genre,
-                        deliveryDate,
-                        reference,
-                        amountLabel: typeof amount === 'number' ? `₦${(amount / 100).toLocaleString('en-NG')}` : undefined,
-                    });
-                }
-
-                void getEmailModule().sendAdminNewOrderEmail({
-                    orderId: id,
-                    occasion: metadata?.occasion,
-                    genre: metadata?.genre,
-                    recipientType: metadata?.recipientType,
-                    fastDelivery: isFastDelivery(metadata?.fastDelivery),
-                    amountLabel: typeof amount === 'number' ? `₦${(amount / 100).toLocaleString('en-NG')}` : undefined,
-                    customerEmail,
-                });
+    try {
+        if (event.event === 'charge.success') {
+            const reference = event.data?.reference;
+            if (!reference) {
+                console.error('[Paystack Webhook] charge.success missing reference');
+                return res.sendStatus(200);
             }
-        } catch (err) {
-            console.error('[Webhook] Error creating order:', err);
+
+            const transaction = await fetchPaystackTransaction(reference);
+            if (transaction.status !== 'success') {
+                throw new Error(`Paystack transaction ${reference} is not successful yet.`);
+            }
+            if (transaction.reference !== reference || !(await validatePaidBankTransfer(transaction))) {
+                console.error('[Paystack Webhook] Verified transaction did not match bank-transfer order', reference);
+                return res.sendStatus(200);
+            }
+
+            const metadata = transaction.metadata || {};
+            await createPaidOrder({
+                reference,
+                referenceColumn: 'paystack_reference',
+                provider: 'paystack',
+                currency: 'ngn',
+                verifiedAmount: transaction.amount,
+                metadata: {
+                    ...metadata,
+                    customerEmail: metadata.customerEmail || transaction.customer?.email,
+                },
+            });
+        } else if (event.event === 'bank.transfer.rejected') {
+            console.warn(
+                '[Paystack Webhook] Bank transfer rejected; no order created',
+                event.data?.reference || '(missing reference)'
+            );
         }
-        })().catch((err) => console.error('[Webhook] async handler failed:', err));
+        return res.sendStatus(200);
+    } catch (err) {
+        // Returning a non-2xx response allows Paystack to retry a transient
+        // verification or database failure instead of losing a paid order.
+        console.error('[Paystack Webhook] Event processing failed:', err);
+        return res.status(500).json({ error: 'Webhook processing failed' });
     }
 });
 
 module.exports = router;
+module.exports.fetchPaystackTransaction = fetchPaystackTransaction;
+module.exports.validatePaidBankTransfer = validatePaidBankTransfer;

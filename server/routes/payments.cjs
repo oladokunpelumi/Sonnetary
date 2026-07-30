@@ -15,13 +15,18 @@ function getStripeClient() {
 // deterministic geo result without depending on module-mock/CJS interop.
 let detectCountry = require('./geo.cjs').detectCountryFromRequest;
 
-// Nigeria's provider is switchable (Paystack today, Stripe once NGN-via-Stripe
-// success rates are proven); NGN_PAYMENT_PROVIDER unset/anything-but-'stripe'
-// keeps current behavior. Everywhere else is always Stripe/USD.
+// Nigerian customers pay the local NGN price and can choose Stripe Card or
+// Paystack Bank Transfer in the client. Stripe remains the default provider
+// because Card is preselected. Everywhere else uses Stripe Card in USD.
 function resolveCheckoutConfig(isNigeria) {
-    if (!isNigeria) return { provider: 'stripe', currency: 'usd' };
-    const ngnProvider = process.env.NGN_PAYMENT_PROVIDER === 'stripe' ? 'stripe' : 'paystack';
-    return { provider: ngnProvider, currency: 'ngn' };
+    if (!isNigeria) {
+        return { provider: 'stripe', currency: 'usd', paymentMethods: ['card'] };
+    }
+    return {
+        provider: 'stripe',
+        currency: 'ngn',
+        paymentMethods: ['card', 'bank_transfer'],
+    };
 }
 
 // GET /api/checkout-config — server-side source of truth for which provider
@@ -106,15 +111,9 @@ router.post('/create-checkout-session', async (req, res) => {
             metadata,
         };
 
-        // For USD, pin to card explicitly (existing behavior). For NGN, omit
-        // payment_method_types entirely so Checkout's dynamic payment methods can
-        // surface Naira-issued cards (ng_card) once enabled in the Dashboard —
-        // Checkout Sessions use dynamic payment methods automatically when this
-        // field is left unset; `automatic_payment_methods` is a Payment Intents
-        // API field and is invalid here (confirmed via a live test-mode probe).
-        if (currency !== 'ngn') {
-            sessionOptions.payment_method_types = ['card'];
-        }
+        // Stripe is the card processor for every Stripe checkout, including NGN.
+        // Nigerian bank transfers are initialized separately through Paystack.
+        sessionOptions.payment_method_types = ['card'];
 
         if (embedded) {
             sessionOptions.ui_mode = 'embedded';
@@ -128,7 +127,6 @@ router.post('/create-checkout-session', async (req, res) => {
         }
 
         const session = await getStripeClient().checkout.sessions.create(sessionOptions);
-
         // Abandoned-checkout signal for the Win-Back flow. Only for a real email
         // (not the guest placeholder); fire-and-forget, env-gated.
         const realEmail = email || customerEmail;
@@ -150,7 +148,11 @@ router.post('/create-checkout-session', async (req, res) => {
             });
         }
 
-        res.json({ url: session.url, sessionId: session.id, clientSecret: session.client_secret });
+        res.json({
+            url: session.url,
+            sessionId: session.id,
+            clientSecret: session.client_secret,
+        });
     } catch (err) {
         console.error('[Stripe] Checkout session error:', err);
         res.status(err.statusCode || 500).json({ error: err.message || 'Failed to create checkout session' });
@@ -163,6 +165,8 @@ router.get('/verify-session/:sessionId', async (req, res) => {
         const session = await getStripeClient().checkout.sessions.retrieve(req.params.sessionId);
         res.json({
             paid: session.payment_status === 'paid',
+            paymentStatus: session.payment_status,
+            checkoutStatus: session.status,
             amount: session.amount_total, // in cents/kobo, per session.currency
             currency: session.currency,
             customerEmail: session.customer_details?.email || session.customer_email,

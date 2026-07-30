@@ -26,11 +26,22 @@ const emailModule = require('../email.cjs');
 const geminiModule = require('../services/gemini.cjs');
 const sendConfirmationEmailMock = vi.spyOn(emailModule, 'sendConfirmationEmail').mockResolvedValue(undefined);
 const generateProductionBriefMock = vi.spyOn(geminiModule, 'generateProductionBrief').mockResolvedValue('Mock AI brief');
+const verifiedTransactions = new Map();
 
 beforeEach(() => {
   db.prepare('DELETE FROM orders').run();
   sendConfirmationEmailMock.mockClear();
   generateProductionBriefMock.mockClear();
+  verifiedTransactions.clear();
+  vi.stubGlobal('fetch', vi.fn(async (url) => {
+    const reference = decodeURIComponent(String(url).split('/').pop());
+    const transaction = verifiedTransactions.get(reference) || makeVerifiedBankTransfer(reference);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ status: true, data: transaction }),
+    };
+  }));
 });
 
 const { default: express } = await import('express');
@@ -62,6 +73,31 @@ function makeChargeSuccessPayload(reference, overrides = {}) {
   });
 }
 
+function makeVerifiedBankTransfer(reference, overrides = {}) {
+  const baseMetadata = {
+    genre: 'Afro-Beats',
+    customerEmail: 'customer@test.com',
+    fastDelivery: 'false',
+  };
+  return {
+    reference,
+    status: 'success',
+    amount: 3000000,
+    currency: 'NGN',
+    channel: 'bank_transfer',
+    customer: { email: 'customer@test.com' },
+    ...overrides,
+    metadata: {
+      ...baseMetadata,
+      ...(overrides.metadata || {}),
+    },
+  };
+}
+
+function registerVerifiedBankTransfer(reference, overrides = {}) {
+  verifiedTransactions.set(reference, makeVerifiedBankTransfer(reference, overrides));
+}
+
 describe('POST /api/paystack/initialize', () => {
   it('returns access_code, reference, and hosted fallback URL', async () => {
     const { default: supertest } = await import('supertest');
@@ -90,6 +126,14 @@ describe('POST /api/paystack/initialize', () => {
       authorization_url: 'https://checkout.paystack.com/mock',
       access_code: 'access_mock_123',
       reference: 'ref_inline_123',
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({
+      currency: 'NGN',
+      channels: ['bank_transfer'],
+      metadata: {
+        paymentMethod: 'bank_transfer',
+      },
     });
   });
 
@@ -162,6 +206,47 @@ describe('POST /api/paystack/initialize', () => {
   });
 });
 
+describe('GET /api/paystack/verify/:reference', () => {
+  it('returns pending without creating an order while a transfer is not successful', async () => {
+    const { default: supertest } = await import('supertest');
+    const reference = 'ref_pending_001';
+    registerVerifiedBankTransfer(reference, { status: 'pending' });
+
+    const res = await supertest(app).get(`/api/paystack/verify/${reference}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ paid: false, paymentStatus: 'pending' });
+    expect(db.prepare('SELECT id FROM orders WHERE paystack_reference = ?').get(reference)).toBeUndefined();
+  });
+
+  it('accepts a verified NGN bank transfer', async () => {
+    const { default: supertest } = await import('supertest');
+    const reference = 'ref_verified_bank_001';
+    registerVerifiedBankTransfer(reference);
+
+    const res = await supertest(app).get(`/api/paystack/verify/${reference}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      paid: true,
+      amount: 3000000,
+      currency: 'ngn',
+      channel: 'bank_transfer',
+    });
+  });
+
+  it('rejects a successful Paystack card transaction', async () => {
+    const { default: supertest } = await import('supertest');
+    const reference = 'ref_wrong_channel_001';
+    registerVerifiedBankTransfer(reference, { channel: 'card' });
+
+    const res = await supertest(app).get(`/api/paystack/verify/${reference}`);
+
+    expect(res.status).toBe(402);
+    expect(res.body.paid).toBe(false);
+  });
+});
+
 describe('POST /api/paystack/webhook — signature verification', () => {
   it('returns 401 when x-paystack-signature header is missing', async () => {
     const { default: supertest } = await import('supertest');
@@ -225,6 +310,10 @@ describe('POST /api/paystack/webhook — charge.success order creation', () => {
     const reference = 'ref_order_create_001';
     const body = makeChargeSuccessPayload(reference, { genre: 'Gospel', customerEmail: 'gospel@test.com' });
     const sig = makeSignature(body);
+    registerVerifiedBankTransfer(reference, {
+      customer: { email: 'gospel@test.com' },
+      metadata: { genre: 'Gospel', customerEmail: 'gospel@test.com' },
+    });
 
     const res = await supertest(app)
       .post('/api/paystack/webhook')
@@ -257,6 +346,10 @@ describe('POST /api/paystack/webhook — charge.success order creation', () => {
     const reference = 'ref_fast_delivery_001';
     const body = makeChargeSuccessPayload(reference, { fastDelivery: 'true' });
     const sig = makeSignature(body);
+    registerVerifiedBankTransfer(reference, {
+      amount: 4000000,
+      metadata: { fastDelivery: 'true' },
+    });
 
     const res = await supertest(app)
       .post('/api/paystack/webhook')
@@ -309,12 +402,17 @@ describe('POST /api/paystack/webhook — charge.success order creation', () => {
       event: 'charge.success',
       data: {
         reference,
-        amount: 5000000,
+        amount: 6000000,
         customer: { email: 'amount@test.com' },
         metadata: { genre: 'Afro-R&B', customerEmail: 'amount@test.com' },
       },
     });
     const sig = makeSignature(body);
+    registerVerifiedBankTransfer(reference, {
+      amount: 6000000,
+      metadata: { genre: 'Afro-R&B', customerEmail: 'amount@test.com' },
+      customer: { email: 'amount@test.com' },
+    });
 
     await supertest(app)
       .post('/api/paystack/webhook')
@@ -328,7 +426,47 @@ describe('POST /api/paystack/webhook — charge.success order creation', () => {
       .prepare('SELECT amount FROM orders WHERE paystack_reference = ?')
       .get(reference);
 
-    expect(order?.amount).toBe(5000000);
+    expect(order?.amount).toBe(6000000);
+  });
+
+  it.each([
+    ['card channel', { channel: 'card' }],
+    ['wrong currency', { currency: 'USD' }],
+    ['underpayment', { amount: 1 }],
+  ])('does not fulfill a successful event with %s', async (_caseName, transactionOverrides) => {
+    const { default: supertest } = await import('supertest');
+    const reference = `ref_invalid_${String(_caseName).replace(/\s/g, '_')}`;
+    const body = makeChargeSuccessPayload(reference);
+    const sig = makeSignature(body);
+    registerVerifiedBankTransfer(reference, transactionOverrides);
+
+    const res = await supertest(app)
+      .post('/api/paystack/webhook')
+      .set('Content-Type', 'application/json')
+      .set('x-paystack-signature', sig)
+      .send(body);
+
+    expect(res.status).toBe(200);
+    expect(db.prepare('SELECT id FROM orders WHERE paystack_reference = ?').get(reference)).toBeUndefined();
+  });
+
+  it('does not create an order for bank.transfer.rejected', async () => {
+    const { default: supertest } = await import('supertest');
+    const reference = 'ref_bank_rejected_001';
+    const body = JSON.stringify({
+      event: 'bank.transfer.rejected',
+      data: { reference, amount: 3000000 },
+    });
+    const sig = makeSignature(body);
+
+    const res = await supertest(app)
+      .post('/api/paystack/webhook')
+      .set('Content-Type', 'application/json')
+      .set('x-paystack-signature', sig)
+      .send(body);
+
+    expect(res.status).toBe(200);
+    expect(db.prepare('SELECT id FROM orders WHERE paystack_reference = ?').get(reference)).toBeUndefined();
   });
 
   it('ignores unknown event types without creating an order', async () => {

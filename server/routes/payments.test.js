@@ -21,7 +21,6 @@ beforeEach(() => {
   retrieveSessionMock.mockReset();
   detectCountryMock.mockClear();
   geoResult = { country: 'US', isNigeria: false, source: 'mock' };
-  vi.stubEnv('NGN_PAYMENT_PROVIDER', '');
 });
 
 const { default: express } = await import('express');
@@ -136,14 +135,14 @@ describe('POST /api/create-checkout-session', () => {
     expect(options.metadata.promoDiscountPercent).toBe('');
   });
 
-  it('charges NGN through Stripe when geo resolves Nigerian and NGN_PAYMENT_PROVIDER=stripe', async () => {
-    vi.stubEnv('NGN_PAYMENT_PROVIDER', 'stripe');
+  it('charges Nigerian card payments in NGN through Stripe', async () => {
     geoResult = { country: 'NG', isNigeria: true, source: 'mock' };
     const { default: supertest } = await import('supertest');
     createSessionMock.mockResolvedValue({
       id: 'cs_test_ngn',
       client_secret: 'cs_secret_ngn',
       url: null,
+      payment_method_types: ['card'],
     });
 
     const res = await supertest(app)
@@ -158,14 +157,11 @@ describe('POST /api/create-checkout-session', () => {
       .set('Content-Type', 'application/json');
 
     expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ sessionId: 'cs_test_ngn' });
     const options = createSessionMock.mock.calls[0][0];
     expect(options.line_items[0].price_data.currency).toBe('ngn');
     expect(options.line_items[0].price_data.unit_amount).toBe(3_000_000);
-    // NGN sessions omit payment_method_types so Checkout's dynamic payment
-    // methods can surface ng_card — automatic_payment_methods is invalid here
-    // (it's a Payment Intents field, confirmed via a live test-mode probe).
-    expect(options.payment_method_types).toBeUndefined();
-    expect(options.automatic_payment_methods).toBeUndefined();
+    expect(options.payment_method_types).toEqual(['card']);
     expect(options.metadata.currency).toBe('NGN');
   });
 
@@ -193,29 +189,55 @@ describe('POST /api/create-checkout-session', () => {
 });
 
 describe('GET /api/checkout-config', () => {
-  it('returns Paystack/NGN for Nigeria when NGN_PAYMENT_PROVIDER is unset', async () => {
+  it('returns Stripe Card and Paystack Bank Transfer for Nigeria', async () => {
     geoResult = { country: 'NG', isNigeria: true, source: 'mock' };
     const { default: supertest } = await import('supertest');
     const res = await supertest(app).get('/api/checkout-config');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ provider: 'paystack', currency: 'ngn', country: 'NG' });
+    expect(res.body).toMatchObject({
+      provider: 'stripe',
+      currency: 'ngn',
+      country: 'NG',
+      paymentMethods: ['card', 'bank_transfer'],
+    });
   });
 
-  it('returns Stripe/NGN for Nigeria when NGN_PAYMENT_PROVIDER=stripe', async () => {
-    vi.stubEnv('NGN_PAYMENT_PROVIDER', 'stripe');
-    geoResult = { country: 'NG', isNigeria: true, source: 'mock' };
-    const { default: supertest } = await import('supertest');
-    const res = await supertest(app).get('/api/checkout-config');
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ provider: 'stripe', currency: 'ngn', country: 'NG' });
-  });
-
-  it('returns Stripe/USD outside Nigeria regardless of NGN_PAYMENT_PROVIDER', async () => {
-    vi.stubEnv('NGN_PAYMENT_PROVIDER', 'stripe');
+  it('returns Stripe Card in USD outside Nigeria', async () => {
     geoResult = { country: 'GB', isNigeria: false, source: 'mock' };
     const { default: supertest } = await import('supertest');
     const res = await supertest(app).get('/api/checkout-config');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ provider: 'stripe', currency: 'usd', country: 'GB' });
+    expect(res.body).toMatchObject({
+      provider: 'stripe',
+      currency: 'usd',
+      country: 'GB',
+      paymentMethods: ['card'],
+    });
+  });
+});
+
+describe('GET /api/verify-session/:sessionId', () => {
+  it('reports an unpaid bank transfer as pending instead of paid', async () => {
+    const { default: supertest } = await import('supertest');
+    retrieveSessionMock.mockResolvedValue({
+      id: 'cs_pending_transfer',
+      payment_status: 'unpaid',
+      status: 'complete',
+      amount_total: 3_000_000,
+      currency: 'ngn',
+      customer_email: 'pending@test.com',
+      metadata: { currency: 'NGN' },
+    });
+
+    const res = await supertest(app).get('/api/verify-session/cs_pending_transfer');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      paid: false,
+      paymentStatus: 'unpaid',
+      checkoutStatus: 'complete',
+      amount: 3_000_000,
+      currency: 'ngn',
+    });
   });
 });

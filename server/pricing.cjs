@@ -25,7 +25,8 @@ function normalizeCurrency(currency) {
 }
 
 // Currency-keyed pricing — the source of truth. Provider no longer implies
-// currency: Stripe can charge NGN (via ng_card) or USD depending on geo/config.
+// currency: Stripe can charge NGN (card or bank transfer) or USD depending on
+// geo/config.
 function getAmount(currency, fastDelivery) {
     const table = PRICING[normalizeCurrency(currency)];
     const fast = isFastDelivery(fastDelivery);

@@ -881,8 +881,16 @@ const CreateSong: React.FC = () => {
                       </div>
                       <p className="mt-2 text-sm text-cream/65">
                         {isFastDelivery
-                          ? `We build and deliver your song in 24 hours - secure payment via ${providerLabel}.`
-                          : `We build and deliver your song in 48 hours - secure payment via ${providerLabel}.`}
+                          ? `We build and deliver your song in 24 hours — ${
+                              currency === 'ngn'
+                                ? 'pay securely by Stripe Card or Paystack Bank Transfer.'
+                                : `secure payment via ${providerLabel}.`
+                            }`
+                          : `We build and deliver your song in 48 hours — ${
+                              currency === 'ngn'
+                                ? 'pay securely by Stripe Card or Paystack Bank Transfer.'
+                                : `secure payment via ${providerLabel}.`
+                            }`}
                       </p>
                       <p className="mt-3 border-t border-cream/10 pt-3 text-sm leading-6 text-cream/60">
                         Your brief is saved in this browser until payment starts, so you can return

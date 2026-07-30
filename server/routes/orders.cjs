@@ -20,9 +20,14 @@ async function verifyPaystackPayment(reference) {
     });
     const data = await res.json();
     return {
-        paid: !!(data.status && data.data?.status === 'success'),
+        paid: !!(
+            data.status
+            && data.data?.status === 'success'
+            && data.data?.channel === 'bank_transfer'
+            && String(data.data?.currency || '').toLowerCase() === 'ngn'
+        ),
         amount: data.data?.amount ?? null,
-        currency: 'ngn', // Paystack only ever settles Naira
+        currency: normalizeCurrency(data.data?.currency),
         metadata: data.data?.metadata ?? {},
     };
 }

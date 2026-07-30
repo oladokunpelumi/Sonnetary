@@ -49,9 +49,9 @@ export const DISCOUNTED_PRICING = {
 
 export type PaymentProvider = keyof typeof DISCOUNTED_PRICING;
 
-// Currency is independent of provider — Stripe can charge NGN (Naira cards)
-// or USD depending on server-side geo/config, so pricing display must key off
-// currency, not provider.
+// Currency is independent of provider — Stripe can charge NGN (Naira card or
+// local bank transfer) or USD depending on server-side geo/config, so pricing
+// display must key off currency, not provider.
 export type Currency = 'ngn' | 'usd';
 
 export const DISCOUNTED_PRICING_BY_CURRENCY = {
