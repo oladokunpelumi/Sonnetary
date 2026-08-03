@@ -11,8 +11,21 @@ vi.stubEnv('DB_PATH', path.join(os.tmpdir(), `sonnetary-pipeline-${process.pid}-
 
 const require = createRequire(import.meta.url);
 const db = require('../db.cjs');
-const { getSongPipeline, shouldAutoRun, mergeJudgePanel, resolveJudgePanel } = require('../services/song-pipeline.cjs');
+const { getSongPipeline, SongPipelineService, shouldAutoRun, mergeJudgePanel, resolveJudgePanel } = require('../services/song-pipeline.cjs');
 const { makeClient } = require('./lib/llm.cjs');
+
+function minimalQualityState() {
+  return {
+    normalized_form: {},
+    creative_brief: {},
+    selected_packs: {},
+    suno_output: {
+      style_prompt: 'test style',
+      title_options: ['Title'],
+      lyrics: { chorus: 'a placeholder chorus line' },
+    },
+  };
+}
 
 function insertOrder(id = crypto.randomUUID()) {
   const now = new Date().toISOString();
@@ -183,5 +196,59 @@ describe('judge panel merge', () => {
     vi.stubEnv('YG_JUDGE_PANEL_MODELS', '');
     expect(resolveJudgePanel('sonnet')[0]).toBe('sonnet');
     expect(resolveJudgePanel('sonnet').length).toBeGreaterThan(1);
+  });
+});
+
+describe('qualityPass degrades instead of throwing on a malformed judge response', () => {
+  // client.run returns a response with no `.json.scores` at all — the shape
+  // mergeJudgePanel treats as unusable. Regression test for the crash where
+  // the caller dereferenced merged.scores on a null merge result.
+  function malformedClient() {
+    return {
+      mock: false,
+      models: { sonnet: 'primary-model' },
+      run: vi.fn(async () => ({ json: {}, model: 'primary-model' })),
+    };
+  }
+
+  it('single-judge panel (YG_JUDGE_PANEL=off): degrades to needs_human_review', async () => {
+    vi.stubEnv('YG_JUDGE_PANEL', 'off');
+    const service = new SongPipelineService();
+    const state = minimalQualityState();
+    const client = malformedClient();
+
+    const verdict = await service.qualityPass(state, client, 1, {});
+
+    expect(verdict).toEqual({ passed: false, status: 'needs_human_review' });
+    expect(state.status).toBe('needs_human_review');
+  });
+
+  it('multi-model panel: last-resort retry also malformed degrades to needs_human_review', async () => {
+    vi.stubEnv('YG_JUDGE_PANEL', 'on');
+    vi.stubEnv('YG_JUDGE_PANEL_MODELS', 'model-a, model-b');
+    const service = new SongPipelineService();
+    const state = minimalQualityState();
+    const client = malformedClient();
+
+    const verdict = await service.qualityPass(state, client, 1, {});
+
+    expect(verdict).toEqual({ passed: false, status: 'needs_human_review' });
+    expect(state.status).toBe('needs_human_review');
+    // panel (2 models) + one last-resort retry = 3 calls, none of them thrown
+    expect(client.run).toHaveBeenCalledTimes(3);
+  });
+
+  it('runQualityLoop stops after a degraded verdict instead of attempting a pointless rewrite', async () => {
+    vi.stubEnv('YG_JUDGE_PANEL', 'off');
+    const service = new SongPipelineService();
+    const state = minimalQualityState();
+    const client = malformedClient();
+
+    await service.runQualityLoop(state, client, {});
+
+    expect(state.status).toBe('needs_human_review');
+    expect(state.rewrite_count).toBe(0);
+    // only the judge was ever called — no 'rewrite' stage call
+    expect(client.run.mock.calls.every(([stage]) => stage === 'judge')).toBe(true);
   });
 });

@@ -41,7 +41,6 @@ const stripeWebhookRouter = require('./routes/stripe-webhook.cjs');
 const adminRouter = require('./routes/admin.cjs');
 const authRouter = require('./routes/auth.cjs');
 const geoRouter = require('./routes/geo.cjs');
-const brainstormRouter = require('./routes/brainstorm.cjs');
 const promosRouter = require('./routes/promos.cjs');
 const subscribersRouter = require('./routes/subscribers.cjs');
 const { getSongPipeline } = require('./services/song-pipeline.cjs');
@@ -243,7 +242,6 @@ app.use('/api/stripe/webhook', stripeWebhookRouter);
 app.use('/api/paystack', paystackPaymentLimiter, paystackRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/auth', authLimiter, authRouter);
-app.use('/api/brainstorm', brainstormRouter);
 app.use('/api/promos', promosRouter);
 app.use('/api/subscribers', subscribersRouter);
 

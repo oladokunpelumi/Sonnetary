@@ -16,7 +16,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "probe:ai": "node server/song-pipeline/tools/probe-ai-provider.cjs"
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
