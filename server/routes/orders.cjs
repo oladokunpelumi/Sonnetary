@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { z } = require('zod');
 const { optionalAuth, requireAuth } = require('../middleware/auth.cjs');
 const { isFastDelivery, normalizeCurrency } = require('../pricing.cjs');
-const { quoteCheckout, parsePromoMetadata } = require('../promos.cjs');
+const { quoteCheckout, parsePromoMetadata, getLegacyAcceptedAmounts } = require('../promos.cjs');
 const { getOne, getAll, execSql, withTransaction } = require('../db-helpers.cjs');
 const { createPaidOrder, formatPaidAmount } = require('../services/paid-order.cjs');
 
@@ -124,6 +124,7 @@ async function validateVerifiedAmount({ provider, currency, metadata, requestFas
         currentQuote.finalAmount,
         fullQuote.finalAmount,
         Math.round(fullQuote.originalAmount * 0.5),
+        ...getLegacyAcceptedAmounts(currency, fastDelivery),
     ]);
 
     if (Number.isFinite(promo.discountedAmount)) {

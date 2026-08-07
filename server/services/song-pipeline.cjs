@@ -387,8 +387,11 @@ class SongPipelineService {
 
     async runClaimedGeneration({ order, restart, fromStage }) {
         const orderId = order.id;
-        const client = makeClient();
         try {
+            // Constructed inside the try: a fail-fast throw here (e.g. missing API key)
+            // must still release the running-order lock and mark the row failed below,
+            // not leak this.running and 409 every future claim for this order.
+            const client = makeClient();
             const existing = await this.getGeneration(orderId);
             const comments = existing?.stage_comments || {};
             const adminOverrides = Object.fromEntries(
@@ -567,7 +570,10 @@ class SongPipelineService {
         state.rewrite_count = 0;
         delete state.quality_report;
         let verdict = await this.qualityPass(state, client, 1, comments);
-        while (!verdict.passed && state.rewrite_count < 2) {
+        // A degraded verdict (judge itself produced nothing usable) means there's no
+        // quality_report to rewrite against — attempting a rewrite here would just
+        // produce more lyrics nothing can judge. Stop rather than loop.
+        while (verdict.status !== 'needs_human_review' && !verdict.passed && state.rewrite_count < 2) {
             state.rewrite_count++;
             const r = await client.run('rewrite', {
                 model: client.models.sonnet,
@@ -606,6 +612,20 @@ class SongPipelineService {
         });
         const judgeOne = (model) => client.run('judge', { model, system, userContent, temperature: STAGE_TEMPERATURES.judge });
 
+        // No usable verdict survived (single judge came back malformed, or the whole
+        // panel plus the last-resort retry did) — the deliverable lyrics already exist
+        // in state, so this degrades to needs_human_review rather than throwing and
+        // losing the run. Without this guard the caller dereferences merged.scores.
+        const degradeToHumanReview = (reason) => {
+            state.status = 'needs_human_review';
+            state.quality_report = {
+                ...(state.quality_report || {}),
+                hard_checks: hard,
+                soft_verdict: reason,
+            };
+            return { passed: false, status: 'needs_human_review' };
+        };
+
         // Mock mode runs a single judge so forced-failure test accounting stays 1:1.
         const panelModels = client.mock ? [client.models.sonnet] : resolveJudgePanel(client.models.sonnet);
 
@@ -613,6 +633,7 @@ class SongPipelineService {
         if (panelModels.length <= 1) {
             const r = await judgeOne(panelModels[0] || client.models.sonnet);
             merged = mergeJudgePanel([r]);
+            if (!merged) return degradeToHumanReview('Judge returned no usable verdict.');
         } else {
             const settled = await Promise.allSettled(panelModels.map(judgeOne));
             const ok = settled.filter((s) => s.status === 'fulfilled').map((s) => s.value);
@@ -623,7 +644,11 @@ class SongPipelineService {
             merged = mergeJudgePanel(ok);
             // Total panel failure (e.g. all model IDs wrong / provider down): one last
             // single-model attempt on the primary model so the pass can still complete.
-            if (!merged) merged = mergeJudgePanel([await judgeOne(client.models.sonnet)]);
+            if (!merged) {
+                const lastResort = await judgeOne(client.models.sonnet);
+                merged = mergeJudgePanel([lastResort]);
+                if (!merged) return degradeToHumanReview('Judge panel and last-resort retry both returned no usable verdict.');
+            }
         }
 
         state.quality_report = {

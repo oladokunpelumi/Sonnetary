@@ -201,18 +201,22 @@ const Home: React.FC = () => {
               Tell us the story, the person, and the moment. YourGbedu turns it into a finished song
               with lyrics, vocals, production, and a delivery flow that still feels personal.
             </p>
+            <p className="mt-2 max-w-2xl font-body text-lg leading-8 text-ink-soft sm:text-xl">
+              Built for birthdays, anniversaries, apologies, memorials, proposals, and the
+              quiet moments that deserve music too.
+            </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/create"
                 className="inline-flex min-h-12 items-center justify-center rounded-full bg-ink px-8 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-cream transition-colors hover:bg-terracotta"
               >
-                Create your song
+                Create My Custom Song
               </Link>
               <Link
                 to="/library"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-control bg-cream px-8 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
               >
-                Hear the catalogue
+                Browse Our Catalogue
               </Link>
             </div>
 
@@ -250,10 +254,6 @@ const Home: React.FC = () => {
                 <div>
                   <p className="font-headline text-2xl italic leading-none text-ink">
                     Real stories, produced like records.
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-ink-soft">
-                    Built for birthdays, anniversaries, apologies, memorials, proposals, and the
-                    quiet moments that deserve music too.
                   </p>
                 </div>
               </div>
@@ -338,14 +338,12 @@ const Home: React.FC = () => {
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <div>
-              <p className="editorial-kicker mb-4">The listening room</p>
               <h2 className="font-headline text-5xl font-medium leading-none text-ink sm:text-6xl">
-                Catalogue samples without the noise.
+                Our Catalogue
               </h2>
             </div>
             <p className="max-w-2xl text-base leading-7 text-ink-soft lg:justify-self-end">
-              Browse real examples, then use the floating player for a calm preview. The art leans
-              into vinyl and editorial cover treatments instead of generic interface decoration.
+              Listen to sample music in our catalogue across various events and genres below
             </p>
           </div>
 
@@ -486,7 +484,7 @@ const Home: React.FC = () => {
                   {item.caption}
                 </p>
                 <span className={`mt-auto inline-flex items-center gap-2 pt-6 font-label text-xs font-bold uppercase tracking-[0.16em] transition-colors ${item.ctaClass}`}>
-                  Start this brief
+                  Create My Custom Song
                   <span className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transition-none" aria-hidden="true">
                     arrow_forward
                   </span>
@@ -500,7 +498,6 @@ const Home: React.FC = () => {
       <section className="bg-ivory px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 text-center">
-            <p className="editorial-kicker mb-4">Genre palette</p>
             <h2 className="font-headline text-5xl font-medium leading-none text-ink sm:text-6xl">
               Every genre, one personal brief.
             </h2>
@@ -531,17 +528,17 @@ const Home: React.FC = () => {
       <section className="bg-terracotta px-5 py-24 text-center text-cream sm:px-8 lg:px-12 lg:py-32">
         <div className="mx-auto max-w-4xl">
           <h2 className="font-headline text-6xl font-medium leading-none sm:text-7xl">
-            Your story is waiting <em className="text-mustard-soft">to be heard.</em>
+            Create Great Memories for you and your Loved Ones
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-cream/75">
-            A few thoughtful answers are enough for our producers to begin shaping something
-            specific, emotional, and ready for the person you love.
+            Tell us your story and we&apos;ll curate something special for that special
+            person(s) on the special occasion
           </p>
           <Link
             to="/create"
             className="mt-9 inline-flex min-h-12 items-center justify-center rounded-full bg-cream px-8 py-3 font-label text-sm font-bold uppercase tracking-[0.14em] text-ink transition-colors hover:bg-ink hover:text-cream"
           >
-            Create your song
+            Create My Custom Song
           </Link>
         </div>
       </section>

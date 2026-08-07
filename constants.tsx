@@ -39,11 +39,11 @@ export const MOODS: { name: Mood; icon: string; img: string }[] = [
 export const DISCOUNTED_PRICING = {
   paystack: {
     standard: { current: '₦30,000', original: '₦60,000', amountKobo: 3_000_000, originalAmountKobo: 6_000_000 },
-    fast: { current: '₦50,000', original: '₦80,000', upgrade: '+₦20,000', amountKobo: 5_000_000, originalAmountKobo: 8_000_000 },
+    fast: { current: '₦40,000', original: '₦80,000', upgrade: '+₦10,000', amountKobo: 4_000_000, originalAmountKobo: 8_000_000 },
   },
   stripe: {
     standard: { current: '$25', original: '$50', amountCents: 2_500, originalAmountCents: 5_000 },
-    fast: { current: '$40', original: '$65', upgrade: '+$15.00', amountCents: 4_000, originalAmountCents: 6_500 },
+    fast: { current: '$32.50', original: '$65', upgrade: '+$7.50', amountCents: 3_250, originalAmountCents: 6_500 },
   },
 } as const;
 
@@ -58,6 +58,12 @@ export const DISCOUNTED_PRICING_BY_CURRENCY = {
   ngn: DISCOUNTED_PRICING.paystack,
   usd: DISCOUNTED_PRICING.stripe,
 } as const;
+
+// Must stay >= the chorusEchoesHeartMessage applicability threshold in
+// server/song-pipeline/code/hard-quality-checks.cjs. Below that threshold the
+// hard quality check for the chorus reports "not applicable" and passes by
+// default, leaving the chorus with no objective gate. Guarded by constants.test.ts.
+export const MIN_SPECIAL_MESSAGE_CHARS = 10;
 
 export const OCCASION_ACCENTS = {
   birthday: {

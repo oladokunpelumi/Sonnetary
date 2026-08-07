@@ -48,15 +48,13 @@ interface PromoQuote {
   } | null;
 }
 
-function readPayFullPriceFlag() {
-  try {
-    return window.localStorage.getItem(FULL_PRICE_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function clearPayFullPriceFlag() {
+// The email-capture popup that used to set this flag (charging the original,
+// pre-discount price for anyone who dismissed it) has been removed — nothing
+// writes 'true' into this key anymore. This one-time cleanup just clears it
+// out of any browser that already had it set from before that removal, so an
+// old visit doesn't keep charging them full price indefinitely. Safe to
+// delete this function entirely once enough time has passed (~2027).
+function clearLegacyFullPriceFlag() {
   try {
     window.localStorage.removeItem(FULL_PRICE_STORAGE_KEY);
   } catch {
@@ -190,7 +188,6 @@ const Checkout: React.FC = () => {
   const [promoQuote, setPromoQuote] = useState<PromoQuote | null>(null);
   const [promoMessage, setPromoMessage] = useState('');
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const [payFullPrice, setPayFullPrice] = useState(readPayFullPriceFlag);
   const [paystackInline, setPaystackInline] = useState<{
     accessCode: string;
     reference: string;
@@ -210,17 +207,12 @@ const Checkout: React.FC = () => {
   const isNigerianSplitCheckout = displayBrief?.currency === 'ngn'
     && availablePaymentMethods.includes('bank_transfer');
   const price = displayBrief ? getDiscountedPriceByCurrency(displayBrief.currency, displayBrief.fastDelivery) : null;
-  const isFullPriceCheckout = payFullPrice && !promoQuote?.promo;
   const displayTotal = displayBrief && promoQuote
     ? formatCheckoutAmount(displayBrief.currency, promoQuote.finalAmount)
-    : isFullPriceCheckout
-      ? price?.original
-      : price?.current;
+    : price?.current;
   const displayOriginal = displayBrief && promoQuote
     ? formatCheckoutAmount(displayBrief.currency, promoQuote.originalAmount)
-    : isFullPriceCheckout
-      ? undefined
-      : price?.original;
+    : price?.original;
 
   const finalizeOrder = useCallback(
     (id: string, trackingToken?: string | null) => {
@@ -232,7 +224,6 @@ const Checkout: React.FC = () => {
       if (trackingToken) sessionStorage.setItem('yourgbedu_track_token', trackingToken);
       sessionStorage.removeItem('yourgbedu_brief');
       sessionStorage.removeItem(BRIEF_DRAFT_STORAGE_KEY);
-      clearPayFullPriceFlag();
       trackEvent('purchase', {
         transaction_id: id,
         currency: (brief?.currency || 'ngn').toUpperCase(),
@@ -401,7 +392,6 @@ const Checkout: React.FC = () => {
         email: brief.customerEmail,
         metadata: brief,
         promoCode: code || undefined,
-        fullPrice: !code && payFullPrice,
       }),
     });
     const data = await response.json().catch(() => null);
@@ -422,7 +412,7 @@ const Checkout: React.FC = () => {
     });
     setStatus('ready');
     setMessage('Pay by bank transfer in Paystack’s secure checkout. Production starts only after confirmation.');
-  }, [brief, payFullPrice]);
+  }, [brief]);
 
   const launchPaystackCheckout = useCallback(() => {
     if (!paystackInline) return;
@@ -493,7 +483,6 @@ const Checkout: React.FC = () => {
         ...brief,
         embedded: true,
         promoCode: code || undefined,
-        fullPrice: !code && payFullPrice,
       }),
     });
     const data = await response.json().catch(() => null);
@@ -528,7 +517,7 @@ const Checkout: React.FC = () => {
           : 'Your payment is encrypted and processed by Stripe. YourGbedu never stores card details.'
       );
     }
-  }, [brief, payFullPrice, verifyStripe]);
+  }, [brief, verifyStripe]);
 
   const restartCheckout = useCallback(
     async (code = '') => {
@@ -607,8 +596,6 @@ const Checkout: React.FC = () => {
 
       setPromoQuote(quote);
       setActivePromoCode(code);
-      setPayFullPrice(false);
-      clearPayFullPriceFlag();
       setPromoMessage(
         quote.finalAmount === 0
           ? '100% promo applied. Completing your order now.'
@@ -635,9 +622,7 @@ const Checkout: React.FC = () => {
     setPromoCode('');
     setActivePromoCode('');
     setPromoQuote(null);
-    const restoredFullPrice = readPayFullPriceFlag();
-    setPayFullPrice(restoredFullPrice);
-    setPromoMessage(restoredFullPrice ? 'Promo removed. Full price restored.' : 'Promo removed. Checkout total restored.');
+    setPromoMessage('Promo removed. Checkout total restored.');
     await restartCheckout('');
   }, [restartCheckout]);
 
@@ -712,16 +697,19 @@ const Checkout: React.FC = () => {
     };
   }, []);
 
-  // Auto-apply promo when arriving from the email-capture popup with ?promo=CODE.
-  // Step 1: seed the input. Step 2: fire the existing apply flow once state has settled.
+  useEffect(() => {
+    clearLegacyFullPriceFlag();
+  }, []);
+
+  // Auto-apply a promo code carried in via a ?promo=CODE deep link (e.g. forwarded
+  // from /create?promo=CODE). Step 1: seed the input. Step 2: fire the existing
+  // apply flow once state has settled.
   const autoPromoSeededRef = useRef(false);
   const autoPromoAppliedRef = useRef(false);
   useEffect(() => {
     if (autoPromoSeededRef.current) return;
     const urlPromo = query.get('promo');
     if (!urlPromo || !brief) return;
-    clearPayFullPriceFlag();
-    setPayFullPrice(false);
     autoPromoSeededRef.current = true;
     setPromoCode(urlPromo);
   }, [query, brief]);
@@ -770,7 +758,7 @@ const Checkout: React.FC = () => {
                     )}
                   </div>
                   <span className="rounded-full bg-mustard px-3 py-1 font-label text-xs font-bold uppercase tracking-[0.12em] text-ink">
-                    {promoQuote?.promo ? `${promoQuote.promo.discountPercent}% off` : isFullPriceCheckout ? 'Full price' : 'Discounted'}
+                    {promoQuote?.promo ? `${promoQuote.promo.discountPercent}% off` : 'Discounted'}
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-ink-soft">

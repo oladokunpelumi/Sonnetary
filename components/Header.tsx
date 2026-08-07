@@ -103,7 +103,7 @@ const Header: React.FC = () => {
               to="/create"
               className="whitespace-nowrap rounded-full bg-ink px-6 py-2.5 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors duration-200 hover:bg-terracotta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-offset-2 xl:px-7"
             >
-              Create Your Song
+              Create My Custom Song
             </Link>
           </div>
 
@@ -192,7 +192,7 @@ const Header: React.FC = () => {
                 onClick={closeMobileMenu}
                 className="mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-ink px-8 text-center font-label text-xs font-bold uppercase tracking-[0.14em] text-cream transition-colors hover:bg-terracotta"
               >
-                Create Your Song
+                Create My Custom Song
               </Link>
             </div>
           </div>

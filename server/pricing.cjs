@@ -1,17 +1,17 @@
 const PRICING = {
     ngn: {
-        standardKobo: 3_000_000, // ₦30,000 discounted from ₦60,000
+        standardKobo: 3_000_000, // ₦30,000 discounted from ₦60,000 (50% off)
         standardOriginalKobo: 6_000_000,
-        fastDeliveryKobo: 5_000_000, // ₦50,000 discounted priority price
+        fastDeliveryKobo: 4_000_000, // ₦40,000 discounted from ₦80,000 (50% off)
         fastDeliveryOriginalKobo: 8_000_000,
-        fastDeliveryUpgradeKobo: 2_000_000,
+        fastDeliveryUpgradeKobo: 1_000_000,
     },
     usd: {
-        standardCents: 2_500, // $25 discounted from $50
+        standardCents: 2_500, // $25 discounted from $50 (50% off)
         standardOriginalCents: 5_000,
-        fastDeliveryCents: 4_000, // $40 discounted priority price
+        fastDeliveryCents: 3_250, // $32.50 discounted from $65 (50% off)
         fastDeliveryOriginalCents: 6_500,
-        fastDeliveryUpgradeCents: 1_500,
+        fastDeliveryUpgradeCents: 750,
     },
 };
 
