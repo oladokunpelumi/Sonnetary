@@ -3,7 +3,6 @@ import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-d
 import Header from './components/Header';
 import Footer from './components/Footer';
 import PersistentPlayer from './components/PersistentPlayer';
-import EmailCapturePopup from './components/EmailCapturePopup';
 import AnalyticsConsent from './components/AnalyticsConsent';
 import Home from './pages/Home';
 import PaymentCancel from './pages/PaymentCancel';
@@ -282,14 +281,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </main>
         <div className="sr-only" aria-live="polite" aria-atomic="true">{routeAnnouncement}</div>
         {!isAdminRoute && <Footer onOpenCookiePreferences={openCookiePreferences} />}
-        {/* While the consent banner is up we hide the idle "Create your song" pill to
+        {/* While the consent banner is up we hide the idle "Create My Custom Song" pill to
             keep the bottom of the viewport clear — but NEVER unmount an active
             transport, or playback becomes uncontrollable (audio keeps going with no
             pause/scrub anywhere once the visitor navigates off the catalogue). */}
         {!isAdminRoute && !isCheckoutRoute && (activeSong || !isConsentVisible) && (
           <PersistentPlayer raised={isConsentVisible} />
         )}
-        {!isAdminRoute && <EmailCapturePopup />}
         <AnalyticsConsent
           forceOpen={forceConsentOpen}
           onVisibilityChange={setIsConsentVisible}

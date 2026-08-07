@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-export type OverlayLayer = 'consent' | 'task-dialog' | 'menu' | 'marketing';
+export type OverlayLayer = 'consent' | 'task-dialog' | 'menu';
 
 interface OverlayContextValue {
   layers: Record<OverlayLayer, boolean>;
@@ -12,13 +12,10 @@ const initialLayers: Record<OverlayLayer, boolean> = {
   consent: false,
   'task-dialog': false,
   menu: false,
-  marketing: false,
 };
 
 // Fixed z-index order: page/header < player (100) < consent (120) < menu (190)
-// < task/marketing dialogs (200). Gates keep marketing from coexisting with
-// consent, menus, or task dialogs; task overlays may displace marketing. The
-// player is unmounted while consent is visible, so dynamic offsets are unused.
+// < task dialogs (200).
 
 const OverlayContext = createContext<OverlayContextValue | null>(null);
 
@@ -31,9 +28,6 @@ export const OverlayProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const canOpen = useCallback(
     (layer: OverlayLayer) => {
-      if (layer === 'marketing') {
-        return !layers.consent && !layers['task-dialog'] && !layers.menu && !layers.marketing;
-      }
       if (layer === 'task-dialog') return !layers['task-dialog'] && !layers.menu;
       if (layer === 'menu') return !layers['task-dialog'] && !layers.menu;
       return true;

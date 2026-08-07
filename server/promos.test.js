@@ -9,7 +9,7 @@ vi.stubEnv('DB_PATH', path.join(os.tmpdir(), `sonnetary-promos-${process.pid}-${
 
 const require = createRequire(import.meta.url);
 const db = require('./db.cjs');
-const { quoteCheckout, createOneTimeFreeCode } = require('./promos.cjs');
+const { quoteCheckout, createOneTimeFreeCode, getLegacyAcceptedAmounts } = require('./promos.cjs');
 
 beforeEach(() => {
   db.prepare('DELETE FROM promo_codes').run();
@@ -37,7 +37,7 @@ describe('promo checkout quotes', () => {
     });
 
     expect(quote.originalAmount).toBe(6500);
-    expect(quote.currentAmount).toBe(4000);
+    expect(quote.currentAmount).toBe(3250);
     expect(quote.finalAmount).toBe(3250);
     expect(quote.promo.discountPercent).toBe(50);
   });
@@ -64,7 +64,7 @@ describe('promo checkout quotes', () => {
     });
 
     expect(quote.originalAmount).toBe(6500);
-    expect(quote.currentAmount).toBe(4000);
+    expect(quote.currentAmount).toBe(3250);
     expect(quote.finalAmount).toBe(6500);
     expect(quote.fullPrice).toBe(true);
     expect(quote.promo).toBeNull();
@@ -79,7 +79,7 @@ describe('promo checkout quotes', () => {
     });
 
     expect(quote.originalAmount).toBe(8000000);
-    expect(quote.currentAmount).toBe(5000000);
+    expect(quote.currentAmount).toBe(4000000);
     expect(quote.finalAmount).toBe(4000000);
     expect(quote.fullPrice).toBe(false);
     expect(quote.promo.discountPercent).toBe(50);
@@ -118,5 +118,26 @@ describe('currency is decoupled from provider (Stripe-for-Naira)', () => {
     const { quoteMetadata } = require('./promos.cjs');
     const quote = await quoteCheckout({ provider: 'stripe', currency: 'ngn', fastDelivery: false });
     expect(quoteMetadata(quote).currency).toBe('NGN');
+  });
+});
+
+describe('legacy fast-delivery amount allowance (temporary deploy-window safety net)', () => {
+  it('accepts the pre-realignment fast-delivery amounts', () => {
+    expect(getLegacyAcceptedAmounts('ngn', true)).toEqual([5_000_000]);
+    expect(getLegacyAcceptedAmounts('usd', true)).toEqual([4_000]);
+  });
+
+  it('is empty for standard delivery — only fast delivery pricing changed', () => {
+    expect(getLegacyAcceptedAmounts('ngn', false)).toEqual([]);
+    expect(getLegacyAcceptedAmounts('usd', false)).toEqual([]);
+  });
+
+  it('a webhook carrying the outgoing fast-delivery amount still validates', async () => {
+    const currentQuote = await quoteCheckout({ provider: 'paystack', fastDelivery: true });
+    const legacyAmount = getLegacyAcceptedAmounts('ngn', true)[0];
+    expect(currentQuote.finalAmount).not.toBe(legacyAmount);
+
+    const allowed = new Set([currentQuote.finalAmount, ...getLegacyAcceptedAmounts('ngn', true)]);
+    expect(allowed.has(legacyAmount)).toBe(true);
   });
 });

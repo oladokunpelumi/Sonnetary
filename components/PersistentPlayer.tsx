@@ -48,7 +48,7 @@ const PersistentPlayer: React.FC<PersistentPlayerProps> = ({ raised = false }) =
           to="/create"
           className="pointer-events-auto inline-flex min-h-12 min-w-[190px] items-center justify-center whitespace-nowrap rounded-full border border-cream/10 bg-ink px-7 py-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-cream shadow-[0_14px_32px_rgba(31,27,20,0.24)] transition-colors hover:bg-terracotta"
         >
-          Create your song
+          Create My Custom Song
         </Link>
       </div>
     );

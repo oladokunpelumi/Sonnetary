@@ -26,6 +26,20 @@ function makeOneTimeCode() {
     return `FREE-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 }
 
+// TEMPORARY (remove after 2026-09-07) — the fast-delivery "current" price moved
+// from ₦50,000/$40 to exactly 50% off list (₦40,000/$32.50). A fast-delivery
+// checkout initialized at the old price just before this deploy but paid just
+// after it would otherwise be rejected here — customer charged, no order
+// created. Once no legitimate in-flight checkout could still carry the old
+// amount, delete this and its call sites in orders.cjs, paystack.cjs, and
+// stripe-webhook.cjs.
+const LEGACY_FAST_DELIVERY_AMOUNTS = { ngn: 5_000_000, usd: 4_000 };
+
+function getLegacyAcceptedAmounts(currency, fastDelivery) {
+    if (!isFastDelivery(fastDelivery)) return [];
+    return [LEGACY_FAST_DELIVERY_AMOUNTS[normalizeCurrency(currency)]];
+}
+
 function getBaseAmounts(provider, fastDelivery, currency) {
     const resolvedCurrency = normalizeCurrency(currency);
     if (resolvedCurrency === 'usd') {
@@ -213,6 +227,7 @@ module.exports = {
     quoteCheckout,
     quoteMetadata,
     parsePromoMetadata,
+    getLegacyAcceptedAmounts,
     createOneTimeFreeCode,
     listOneTimeCodes,
     disablePromoCode,

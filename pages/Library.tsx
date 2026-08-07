@@ -16,7 +16,7 @@ const Library: React.FC = () => {
       <div className="mx-auto max-w-7xl">
         <section className="grid gap-8 border-y border-line bg-cream py-8 sm:py-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="flex flex-col justify-end">
-            <p className="editorial-kicker mb-4">The collection</p>
+            <p className="editorial-kicker mb-4">Our Catalogue</p>
             <h1 className="font-headline text-6xl font-medium leading-none text-ink sm:text-7xl">
               The Hall of <em className="text-terracotta">Fame</em>
             </h1>
@@ -41,7 +41,7 @@ const Library: React.FC = () => {
                 to="/create"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-control px-7 py-3 font-label text-xs font-bold uppercase tracking-[0.14em] text-ink-soft transition-colors hover:border-terracotta hover:text-terracotta"
               >
-                Create your song
+                Create My Custom Song
               </Link>
             </div>
           </div>
@@ -55,10 +55,7 @@ const Library: React.FC = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-5 text-cream">
-              <p className="font-headline text-3xl italic leading-none">
-                Listen before you brief.
-              </p>
-              <p className="mt-2 text-sm leading-6 text-cream/60">
+              <p className="text-sm leading-6 text-cream/60">
                 Samples stay anchored in the floating player while you browse.
               </p>
             </div>

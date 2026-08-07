@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Currency, OCCASION_ACCENTS, PaymentProvider, getDiscountedPriceByCurrency } from '../constants';
+import { Currency, MIN_SPECIAL_MESSAGE_CHARS, OCCASION_ACCENTS, PaymentProvider, getDiscountedPriceByCurrency } from '../constants';
 import { fetchCheckoutConfig } from '../services/checkoutProvider';
 
 const RECIPIENTS = [
@@ -74,16 +74,10 @@ const FORM_STEPS = [
     id: 3,
     title: 'Story',
     heading: 'The Heart of the Story',
-    desc: 'Share the qualities and memories that matter.',
+    desc: 'Share the qualities, memories, and the words behind the song.',
   },
   {
     id: 4,
-    title: 'Message',
-    heading: 'Say what should be felt',
-    desc: 'Add the words, promise, prayer, apology, or gratitude behind the song.',
-  },
-  {
-    id: 5,
     title: 'Review',
     heading: 'Review and complete',
     desc: 'Confirm your brief, delivery speed, price, and email.',
@@ -247,16 +241,18 @@ const CreateSong: React.FC = () => {
   }, [occasion, recipientName, recipientType, senderName]);
   const isStepTwoComplete = useCallback(() => Boolean(genre && voiceGender), [genre, voiceGender]);
   const isStepThreeComplete = useCallback(() => {
-    return specialQualities.trim().length >= 5 && favoriteMemories.trim().length >= 5;
-  }, [favoriteMemories, specialQualities]);
-  const isStepFourComplete = useCallback(() => specialMessage.trim().length >= 5, [specialMessage]);
+    return (
+      specialQualities.trim().length >= 5 &&
+      favoriteMemories.trim().length >= 5 &&
+      specialMessage.trim().length >= MIN_SPECIAL_MESSAGE_CHARS
+    );
+  }, [favoriteMemories, specialMessage, specialQualities]);
   const furthestAllowedStep = useMemo(() => {
     if (!isStepOneComplete()) return 1;
     if (!isStepTwoComplete()) return 2;
     if (!isStepThreeComplete()) return 3;
-    if (!isStepFourComplete()) return 4;
-    return 5;
-  }, [isStepFourComplete, isStepOneComplete, isStepThreeComplete, isStepTwoComplete]);
+    return 4;
+  }, [isStepOneComplete, isStepThreeComplete, isStepTwoComplete]);
   const navigateToStep = useCallback(
     (targetStep: number, replace = false) => {
       const nextParams = new URLSearchParams(searchParams);
@@ -302,7 +298,7 @@ const CreateSong: React.FC = () => {
   }, [furthestAllowedStep, navigateToStep, searchParams]);
 
   useEffect(() => {
-    if (step !== 5 || paymentProvider !== null) return;
+    if (step !== FORM_STEPS.length || paymentProvider !== null) return;
     let cancelled = false;
 
     const detectProvider = async () => {
@@ -359,8 +355,8 @@ const CreateSong: React.FC = () => {
       reportError('Add at least one favorite memory.', favoriteMemoriesRef);
       return;
     }
-    if (step === 4 && !isStepFourComplete()) {
-      reportError('Write a special message of at least five characters.', specialMessageRef);
+    if (step === 3 && specialMessage.trim().length < MIN_SPECIAL_MESSAGE_CHARS) {
+      reportError('Add at least a short sentence — this is what your chorus is built around.', specialMessageRef);
       return;
     }
     navigateToStep(step + 1);
@@ -372,7 +368,7 @@ const CreateSong: React.FC = () => {
   };
 
   const handleCompleteBrief = () => {
-    if (step !== 5) return;
+    if (step !== FORM_STEPS.length) return;
     if (!customerEmail || !customerEmail.includes('@')) {
       reportError('Enter a valid email address to receive your song.', customerEmailRef);
       return;
@@ -754,31 +750,31 @@ const CreateSong: React.FC = () => {
                     onChange={(e) => setFavoriteMemories(e.target.value)}
                   />
                 </div>
+                <div>
+                  <label htmlFor="special-message" className="mb-2 block font-body text-xl font-bold text-ink">
+                    What should the song say? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
+                  </label>
+                  <p className="mb-4 text-sm leading-6 text-ink-muted">
+                    Add the words you want included, even if they are rough. Emotion matters more than polish.
+                  </p>
+                  <textarea
+                    id="special-message"
+                    ref={specialMessageRef}
+                    aria-invalid={Boolean(error && specialMessage.trim().length < MIN_SPECIAL_MESSAGE_CHARS)}
+                    aria-describedby={`special-message-help${error ? ' create-step-error' : ''}`}
+                    className={`${fieldClass} min-h-[320px] resize-y text-lg leading-8`}
+                    placeholder="I do not say it enough, but you are the reason I am still standing..."
+                    value={specialMessage}
+                    onChange={(e) => setSpecialMessage(e.target.value)}
+                  />
+                  <p id="special-message-help" className="mt-2 text-sm leading-6 text-ink-muted">
+                    A sentence or two works best — this is what your chorus is built around.
+                  </p>
+                </div>
               </div>
             )}
 
             {step === 4 && (
-              <div>
-                <label htmlFor="special-message" className="mb-2 block font-body text-xl font-bold text-ink">
-                  What should the song say? <span className="font-body text-sm font-semibold text-terracotta">Required</span>
-                </label>
-                <p className="mb-4 text-sm leading-6 text-ink-muted">
-                  Add the words you want included, even if they are rough. Emotion matters more than polish.
-                </p>
-                <textarea
-                  id="special-message"
-                  ref={specialMessageRef}
-                  aria-invalid={Boolean(error && specialMessage.trim().length < 5)}
-                  aria-describedby={error ? 'create-step-error' : undefined}
-                  className={`${fieldClass} min-h-[320px] resize-y text-lg leading-8`}
-                  placeholder="I do not say it enough, but you are the reason I am still standing..."
-                  value={specialMessage}
-                  onChange={(e) => setSpecialMessage(e.target.value)}
-                />
-              </div>
-            )}
-
-            {step === 5 && (
               <div className="space-y-7">
                 <div className="rounded-lg border border-line bg-ivory p-5 sm:p-7">
                   <h3 className="font-headline text-4xl font-semibold leading-none text-ink">
@@ -881,15 +877,15 @@ const CreateSong: React.FC = () => {
                       </div>
                       <p className="mt-2 text-sm text-cream/65">
                         {isFastDelivery
-                          ? `We build and deliver your song in 24 hours — ${
+                          ? `We build and deliver your song in 24 hours. ${
                               currency === 'ngn'
-                                ? 'pay securely by Stripe Card or Paystack Bank Transfer.'
-                                : `secure payment via ${providerLabel}.`
+                                ? 'Pay Securely with Stripe (Card) or Paystack (Bank Transfer).'
+                                : `Secure payment via ${providerLabel}.`
                             }`
-                          : `We build and deliver your song in 48 hours — ${
+                          : `We build and deliver your song in 48 hours. ${
                               currency === 'ngn'
-                                ? 'pay securely by Stripe Card or Paystack Bank Transfer.'
-                                : `secure payment via ${providerLabel}.`
+                                ? 'Pay Securely with Stripe (Card) or Paystack (Bank Transfer).'
+                                : `Secure payment via ${providerLabel}.`
                             }`}
                       </p>
                       <p className="mt-3 border-t border-cream/10 pt-3 text-sm leading-6 text-cream/60">
@@ -924,7 +920,7 @@ const CreateSong: React.FC = () => {
               Back
             </button>
 
-            {step < 5 ? (
+            {step < FORM_STEPS.length ? (
               <button
                 type="button"
                 onClick={nextStep}

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { normalizeCurrency } = require('../pricing.cjs');
-const { quoteCheckout, parsePromoMetadata } = require('../promos.cjs');
+const { quoteCheckout, parsePromoMetadata, getLegacyAcceptedAmounts } = require('../promos.cjs');
 const { createPaidOrder } = require('../services/paid-order.cjs');
 
 let stripeClient;
@@ -24,6 +24,7 @@ async function validateSessionAmount({ metadata, currency, amountTotal }) {
         currentQuote.finalAmount,
         fullQuote.finalAmount,
         Math.round(fullQuote.originalAmount * 0.5),
+        ...getLegacyAcceptedAmounts(currency, fastDelivery),
     ]);
 
     if (Number.isFinite(promo.discountedAmount)) {

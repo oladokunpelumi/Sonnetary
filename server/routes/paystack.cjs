@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { z } = require('zod');
 const { isFastDelivery } = require('../pricing.cjs');
 const { getClientUrlFromRequest } = require('../client-url.cjs');
-const { quoteCheckout, quoteMetadata, parsePromoMetadata } = require('../promos.cjs');
+const { quoteCheckout, quoteMetadata, parsePromoMetadata, getLegacyAcceptedAmounts } = require('../promos.cjs');
 const { createPaidOrder } = require('../services/paid-order.cjs');
 
 const InitializeSchema = z.object({
@@ -95,6 +95,7 @@ async function validatePaidBankTransfer(transaction) {
         currentQuote.finalAmount,
         fullQuote.finalAmount,
         Math.round(fullQuote.originalAmount * 0.5),
+        ...getLegacyAcceptedAmounts('ngn', fastDelivery),
     ]);
 
     if (Number.isFinite(promo.discountedAmount)) {
